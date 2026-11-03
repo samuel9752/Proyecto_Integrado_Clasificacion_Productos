@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 
 import {
@@ -12,7 +11,7 @@ import {
     Alert
 } from "react-native";
 
-import { firebaseConfig } from "../firebase/FirebaseConfig";
+import { firebaseConfig } from "../firebase/FireBaseConfig";
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 
@@ -27,9 +26,6 @@ import {
     doc,
     getDoc
 } from "firebase/firestore";
-
-// FIREBASE
-
 const app = getApps().length === 0
     ? initializeApp(firebaseConfig)
     : getApp();
