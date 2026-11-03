@@ -1,291 +1,568 @@
 
-import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { firebaseConfig } from "../firebase/FirebaseConfig";
-import { useState } from "react";
-import { initializeApp } from "firebase/app";
+import React, { useState } from "react";
+
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    Alert,
+    ScrollView,
+    StatusBar,
+    ActivityIndicator
+} from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { firebaseConfig } from "../firebase/FirebaseConfig";
+
+import { initializeApp, getApps, getApp } from "firebase/app";
+
+import {
+    getAuth,
+    createUserWithEmailAndPassword
+} from "firebase/auth";
+
+import {
+    getFirestore,
+    doc,
+    setDoc
+} from "firebase/firestore";
+
+// FIREBASE
+
+const app = getApps().length === 0
+    ? initializeApp(firebaseConfig)
+    : getApp();
+
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 export default function Register({ navigation }) {
 
+    const [nombre, setNombre] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [rol, setRol] = useState("usuario");
+    const [loading, setLoading] = useState(false);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    // REGISTRO
 
-    const Registro = () => {
+    const Registro = async () => {
 
-        createUserWithEmailAndPassword(auth, email, password)
+        if (!nombre.trim() || !email.trim() || !password) {
+            Alert.alert(
+                "Campos incompletos",
+                "Completa todos los campos."
+            );
+            return;
+        }
 
-            .then(() => {
+        if (password.length < 6) {
+            Alert.alert(
+                "Contraseña inválida",
+                "La contraseña debe tener al menos 6 caracteres."
+            );
+            return;
+        }
 
-                alert("Usuario registrado");
-                setEmail("");
-                setPassword("");
+        // LOS ADMINISTRADORES NECESITAN AUTORIZACIÓN
 
-            })
+        if (rol === "admin") {
+            Alert.alert(
+                "Registro de administrador",
+                "Las cuentas de administrador deben ser autorizadas y creadas mediante un proceso seguro. Contacta al administrador del sistema."
+            );
+            return;
+        }
 
-            .catch((error) => {
+        try {
 
-                alert(error);
+            setLoading(true);
+
+            // CREAR CUENTA
+
+            const resultado = await createUserWithEmailAndPassword(
+                auth,
+                email.trim(),
+                password
+            );
+
+            const usuario = resultado.user;
+
+            // GUARDAR INFORMACIÓN EN FIRESTORE
+
+            await setDoc(doc(db, "usuarios", usuario.uid), {
+
+                nombre: nombre.trim(),
+                correo: email.trim(),
+                rol: "usuario",
+                fechaRegistro: new Date().toISOString()
 
             });
 
+            Alert.alert(
+                "¡Registro exitoso!",
+                "Tu cuenta ha sido creada correctamente."
+            );
+
+            navigation.replace("Usuario");
+
+        } catch (error) {
+
+            let mensaje = "No se pudo crear la cuenta.";
+
+            if (error.code === "auth/email-already-in-use") {
+                mensaje = "Este correo ya está registrado.";
+            } else if (error.code === "auth/invalid-email") {
+                mensaje = "El correo electrónico no es válido.";
+            } else if (error.code === "auth/weak-password") {
+                mensaje = "La contraseña es demasiado débil.";
+            }
+
+            Alert.alert("Error de registro", mensaje);
+
+        } finally {
+
+            setLoading(false);
+
+        }
     };
 
     return (
 
         <SafeAreaView style={styles.safeArea}>
 
-            <View style={styles.container}>
+            <StatusBar
+                backgroundColor="#142D4E"
+                barStyle="light-content"
+            />
+
+            <ScrollView
+                contentContainerStyle={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+
+                {/* ENCABEZADO */}
 
                 <View style={styles.header}>
 
-                    <Text style={styles.houseIcon}>⌂</Text>
+                    <Text style={styles.icon}>🥤</Text>
 
-                    <Text style={styles.logo}>Banda Expendedora</Text>
-
-                    <Text style={styles.headerSubtitle}>
-                        Crea tu cuenta para comenzar
+                    <Text style={styles.brand}>
+                        BEBIDAS SMART
                     </Text>
 
+                    <Text style={styles.headerTitle}>
+                        ¡Únete a nosotros!
+                    </Text>
+
+                    <Text style={styles.headerSubtitle}>
+                        Coca-Cola o Pepsi, tú decides.
+                    </Text>
+
+                    <View style={styles.brands}>
+
+                        <Text style={styles.coca}>
+                            Coca-Cola
+                        </Text>
+
+                        <Text style={styles.pepsi}>
+                            Pepsi
+                        </Text>
+
+                    </View>
+
                 </View>
+
+                {/* FORMULARIO */}
 
                 <View style={styles.content}>
 
                     <View style={styles.card}>
 
-                        <Text style={styles.title}>Crear cuenta</Text>
-
-                        <Text style={styles.subtitle}>
-                            Regístrate
+                        <Text style={styles.title}>
+                            Crear cuenta
                         </Text>
 
-                        <Text style={styles.label}>Correo electrónico</Text>
+                        <Text style={styles.subtitle}>
+                            Completa tus datos para registrarte
+                        </Text>
+
+                        {/* NOMBRE */}
+
+                        <Text style={styles.label}>
+                            Nombre completo
+                        </Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Ingresa tu nombre"
+                            placeholderTextColor="#9AA8B8"
+                            value={nombre}
+                            onChangeText={setNombre}
+                        />
+
+                        {/* CORREO */}
+
+                        <Text style={styles.label}>
+                            Correo electrónico
+                        </Text>
 
                         <TextInput
                             style={styles.input}
                             placeholder="correo@ejemplo.com"
-                            placeholderTextColor="#9AA4B2"
+                            placeholderTextColor="#9AA8B8"
                             keyboardType="email-address"
                             autoCapitalize="none"
                             value={email}
                             onChangeText={setEmail}
                         />
 
-                        <Text style={styles.label}>Contraseña</Text>
+                        {/* CONTRASEÑA */}
+
+                        <Text style={styles.label}>
+                            Contraseña
+                        </Text>
 
                         <TextInput
                             style={styles.input}
                             placeholder="Crea una contraseña"
-                            placeholderTextColor="#9AA4B2"
+                            placeholderTextColor="#9AA8B8"
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
                         />
 
+                        {/* TIPO DE CUENTA */}
+
+                        <Text style={styles.label}>
+                            Tipo de cuenta
+                        </Text>
+
+                        <View style={styles.roles}>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.roleButton,
+                                    rol === "usuario" && styles.roleSelected
+                                ]}
+                                onPress={() => setRol("usuario")}
+                            >
+
+                                <Text style={styles.roleIcon}>
+                                    👤
+                                </Text>
+
+                                <Text style={[
+                                    styles.roleText,
+                                    rol === "usuario" && styles.roleTextSelected
+                                ]}>
+                                    Usuario
+                                </Text>
+
+                                <Text style={styles.roleDescription}>
+                                    Solicitar bebidas
+                                </Text>
+
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.roleButton,
+                                    rol === "admin" && styles.adminSelected
+                                ]}
+                                onPress={() => setRol("admin")}
+                            >
+
+                                <Text style={styles.roleIcon}>
+                                    🛡️
+                                </Text>
+
+                                <Text style={[
+                                    styles.roleText,
+                                    rol === "admin" && styles.roleTextSelected
+                                ]}>
+                                    Administrador
+                                </Text>
+
+                                <Text style={styles.roleDescription}>
+                                    Acceso autorizado
+                                </Text>
+
+                            </TouchableOpacity>
+
+                        </View>
+
+                        {/* BOTÓN */}
+
                         <TouchableOpacity
-                            style={styles.button}
+                            style={[
+                                styles.button,
+                                loading && { opacity: 0.7 }
+                            ]}
                             onPress={Registro}
+                            disabled={loading}
                         >
 
-                            <Text style={styles.buttonText}>
-                                Crear cuenta
-                            </Text>
+                            {loading ? (
+
+                                <ActivityIndicator color="#FFFFFF" />
+
+                            ) : (
+
+                                <Text style={styles.buttonText}>
+                                    Crear cuenta
+                                </Text>
+
+                            )}
 
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.loginButton}
-                            onPress={() => navigation.navigate("Login")}
-                        >
+                        {/* INICIAR SESIÓN */}
+
+                        <View style={styles.loginContainer}>
 
                             <Text style={styles.loginText}>
-                                ¿Ya tienes cuenta?{" "}
-                                <Text style={styles.link}>
-                                    Inicia sesión
-                                </Text>
+                                ¿Ya tienes cuenta?
                             </Text>
 
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate("Login")}
+                            >
+
+                                <Text style={styles.loginLink}>
+                                    Inicia sesión
+                                </Text>
+
+                            </TouchableOpacity>
+
+                        </View>
 
                     </View>
 
+                    <Text style={styles.footer}>
+                        TU BEBIDA, A UN SOLO TOQUE
+                    </Text>
+
                 </View>
 
-            </View>
+            </ScrollView>
 
         </SafeAreaView>
 
     );
-
 }
 
 const styles = StyleSheet.create({
 
     safeArea: {
-
         flex: 1,
-        backgroundColor: "#F2F6FA",
-
+        backgroundColor: "#F3F6FA"
     },
 
-    container: {
-
-        flex: 1,
-        backgroundColor: "#F2F6FA",
-
+    scroll: {
+        flexGrow: 1
     },
 
     header: {
-
-        backgroundColor: "#1E3A5F",
-        paddingTop: 25,
-        paddingBottom: 30,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 35,
-        borderBottomRightRadius: 35,
-        alignItems: "center",
-
+        height: 300,
+        backgroundColor: "#142D4E",
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+        justifyContent: "center",
+        alignItems: "center"
     },
 
-    houseIcon: {
-
-        fontSize: 38,
-        color: "#FFFFFF",
-        marginBottom: 5,
-
+    icon: {
+        fontSize: 48,
+        marginBottom: 10
     },
 
-    logo: {
-
-        fontSize: 27,
+    brand: {
+        fontSize: 13,
+        color: "#8DBDEB",
         fontWeight: "bold",
-        color: "#FFFFFF",
-        textAlign: "center",
+        letterSpacing: 4
+    },
 
+    headerTitle: {
+        fontSize: 27,
+        color: "#FFFFFF",
+        fontWeight: "bold",
+        marginTop: 12
     },
 
     headerSubtitle: {
+        color: "#D3DFEC",
+        marginTop: 8,
+        fontSize: 14
+    },
 
-        fontSize: 14,
-        color: "#D9E8F5",
-        textAlign: "center",
-        marginTop: 6,
+    brands: {
+        flexDirection: "row",
+        gap: 12,
+        marginTop: 20
+    },
 
+    coca: {
+        backgroundColor: "#E51B23",
+        color: "#FFFFFF",
+        padding: 10,
+        borderRadius: 20,
+        overflow: "hidden",
+        fontWeight: "bold"
+    },
+
+    pepsi: {
+        backgroundColor: "#005CB4",
+        color: "#FFFFFF",
+        padding: 10,
+        borderRadius: 20,
+        overflow: "hidden",
+        fontWeight: "bold"
     },
 
     content: {
-
         flex: 1,
-        justifyContent: "center",
-        paddingHorizontal: 20,
-        paddingVertical: 25,
-
+        paddingHorizontal: 22,
+        marginTop: -30,
+        paddingBottom: 20
     },
 
     card: {
-
         width: "100%",
-        maxWidth: 400,
+        maxWidth: 430,
         alignSelf: "center",
         backgroundColor: "#FFFFFF",
-        borderRadius: 24,
-        padding: 30,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 5,
-        },
-        shadowOpacity: 0.10,
-        shadowRadius: 10,
-        elevation: 6,
-
+        borderRadius: 25,
+        padding: 25,
+        elevation: 7,
+        shadowColor: "#142D4E",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12
     },
 
     title: {
-
-        fontSize: 30,
+        fontSize: 27,
         fontWeight: "bold",
-        color: "#1E3A5F",
-        textAlign: "center",
-        marginBottom: 8,
-
+        color: "#142D4E"
     },
 
     subtitle: {
-
-        fontSize: 14,
-        color: "#718096",
-        textAlign: "center",
-        marginBottom: 30,
-
+        fontSize: 13,
+        color: "#8492A3",
+        marginTop: 5,
+        marginBottom: 24
     },
 
     label: {
-
-        fontSize: 15,
+        fontSize: 14,
+        color: "#263F5C",
         fontWeight: "600",
-        color: "#334E68",
-        marginBottom: 8,
-
+        marginBottom: 8
     },
 
     input: {
-
         height: 52,
+        backgroundColor: "#F5F8FC",
         borderWidth: 1,
-        borderColor: "#C7D4E2",
+        borderColor: "#E1E8F0",
         borderRadius: 12,
-        paddingHorizontal: 15,
-        fontSize: 16,
-        color: "#243B53",
-        marginBottom: 20,
-        backgroundColor: "#F8FAFC",
+        paddingHorizontal: 14,
+        marginBottom: 18,
+        color: "#263F5C"
+    },
 
+    roles: {
+        flexDirection: "row",
+        gap: 10,
+        marginBottom: 22
+    },
+
+    roleButton: {
+        flex: 1,
+        borderWidth: 1.5,
+        borderColor: "#E1E8F0",
+        backgroundColor: "#F8FAFC",
+        borderRadius: 13,
+        padding: 12,
+        alignItems: "center"
+    },
+
+    roleSelected: {
+        borderColor: "#28679E",
+        backgroundColor: "#EAF3FC"
+    },
+
+    adminSelected: {
+        borderColor: "#D71920",
+        backgroundColor: "#FCEBEC"
+    },
+
+    roleIcon: {
+        fontSize: 25,
+        marginBottom: 6
+    },
+
+    roleText: {
+        fontSize: 13,
+        fontWeight: "bold",
+        color: "#52657A"
+    },
+
+    roleTextSelected: {
+        color: "#142D4E"
+    },
+
+    roleDescription: {
+        fontSize: 10,
+        color: "#8492A3",
+        marginTop: 5,
+        textAlign: "center"
     },
 
     button: {
-
-        height: 52,
-        backgroundColor: "#2F6B9A",
-        borderRadius: 12,
+        height: 53,
+        backgroundColor: "#28679E",
+        borderRadius: 13,
         justifyContent: "center",
         alignItems: "center",
-        marginTop: 5,
-
+        marginTop: 5
     },
 
     buttonText: {
-
         color: "#FFFFFF",
-        fontSize: 16,
         fontWeight: "bold",
-
+        fontSize: 16
     },
 
-    loginButton: {
-
-        marginTop: 22,
+    loginContainer: {
         alignItems: "center",
-
+        marginTop: 23
     },
 
     loginText: {
-
-        color: "#718096",
-        fontSize: 14,
-
+        color: "#8492A3",
+        fontSize: 13
     },
 
-    link: {
-
-        color: "#2F6B9A",
+    loginLink: {
+        color: "#28679E",
         fontWeight: "bold",
-
+        marginTop: 7
     },
+
+    footer: {
+        textAlign: "center",
+        fontSize: 10,
+        letterSpacing: 2,
+        color: "#9AA8B8",
+        fontWeight: "600",
+        marginTop: 25
+    }
 
 });
-
