@@ -1,8 +1,9 @@
 // src/navigation/BottomTabNavigator.js
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import AdminScreen from '../screens/AdminSreen';
-import UsuarioScreen from '../screens/UsuarioScreen';
-import ProfileUsuarioScreen from '../screens/ProfileUsuarioScreen';
+import UserScreen from '../screens/Usuario/UserScreen';
+import CarritoUserScreen from '../screens/Usuario/CarritoUserScreen';
+import ComprasUserScreen from '../screens/Usuario/ComprasUserScreen';
+import UserProfileScreen from '../screens/Usuario/UserProfileScreen';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -23,8 +24,8 @@ export default function BottomTabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Admin"
-        component={AdminScreen}
+        name="Usuario"
+        component={UserScreen}
         options={{
           tabBarIcon: () => (
             <MaterialCommunityIcons name="garage" size={24} color="black" />
@@ -32,8 +33,8 @@ export default function BottomTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Usuario"
-        component={UsuarioScreen}
+        name="Comprar"
+        component={CarritoUserScreen}
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="living" size={24} color="black" />
@@ -41,8 +42,17 @@ export default function BottomTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileUsuarioScreen}
+        name="Compras"
+        component={ComprasUserScreen}
+        options={{
+          tabBarIcon: () => (
+            <MaterialIcons name="kitchen" size={24} color="black" />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Perfil"
+        component={UserProfileScreen}
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="kitchen" size={24} color="black" />

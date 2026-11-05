@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function ProfileAdminScreen() {
+export default function LoginScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Perfil del Administrador</Text>
+      <Text style={styles.text}>Carrito de Compras Usuario</Text>
       <StatusBar style="auto" />
     </View>
   );

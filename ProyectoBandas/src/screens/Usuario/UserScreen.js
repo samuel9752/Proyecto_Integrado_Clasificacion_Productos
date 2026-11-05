@@ -1,10 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function ProfileUsuarioScreen() {
+export default function LoginScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Perfil del Usuario</Text>
+      <Text style={styles.text}>Información del Usuario</Text>
       <StatusBar style="auto" />
     </View>
   );
