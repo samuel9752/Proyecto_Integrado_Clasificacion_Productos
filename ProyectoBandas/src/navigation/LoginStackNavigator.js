@@ -1,8 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import LoginScreen from '../screens/Login';
-import RegisterScreen from '../screens/Register';
-import BottomTabNavigator from '../navigation/BottomTabNavigator'
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import AdminBottomTabNavigator from './AdminBottomTabNavigator'
+import UserBottomTabNavigator from './UserBottomTabNavigator';
 
 // Creamos nuestro Stack Navigator.
 const Stack = createNativeStackNavigator();
@@ -25,12 +26,20 @@ export default function LoginStackNavigator() {
                 }}
             />
             <Stack.Screen
-                name='BottomTabNavigator'
-                component={BottomTabNavigator}
+                name='AdminBottomTabNavigator'
+                component={AdminBottomTabNavigator}
                 options={{
                     headerShown: false
                 }}
             />
+            <Stack.Screen
+                name='UserBottomTabNavigator'
+                component={UserBottomTabNavigator}
+                options={{
+                    headerShown: false
+                }}
+            />
+            
         </Stack.Navigator>
     )
 }

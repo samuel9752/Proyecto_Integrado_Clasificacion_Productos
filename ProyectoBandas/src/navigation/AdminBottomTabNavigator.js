@@ -2,7 +2,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AdminScreen from '../screens/AdminSreen';
 import UsuarioScreen from '../screens/UsuarioScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileUsuarioScreen from '../screens/ProfileUsuarioScreen';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -42,7 +42,7 @@ export default function BottomTabNavigator() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileUsuarioScreen}
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="kitchen" size={24} color="black" />
