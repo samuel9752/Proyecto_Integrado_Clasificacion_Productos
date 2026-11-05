@@ -24,6 +24,13 @@ export default function EventStackNavigator() {
                     headerShown: false
                 }}
             />
+            <Stack.Screen
+                name='BottomTabNavigator'
+                component={BottomTabNavigator}
+                options={{
+                    headerShown: false
+                }}
+            />
         </Stack.Navigator>
     )
 }

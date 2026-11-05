@@ -1,8 +1,9 @@
 // src/navigation/BottomTabNavigator.js
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Admin from '../screens/Admin';
-import Usuario from '../screens/Usuario'
-import Profile from '../screens/Profile'
+import AdminScreen from '../screens/AdminSreen';
+import UsuarioScreen from '../screens/UsuarioScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -23,7 +24,7 @@ export default function BottomTabNavigator() {
     >
       <Tab.Screen
         name="Admin"
-        component={Admin}
+        component={AdminScreen}
         options={{
           tabBarIcon: () => (
             <MaterialCommunityIcons name="garage" size={24} color="black" />
@@ -33,7 +34,7 @@ export default function BottomTabNavigator() {
 
       <Tab.Screen
         name="Usuario"
-        component={Usuario}
+        component={UsuarioScreen}
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="living" size={24} color="black" />
@@ -44,7 +45,7 @@ export default function BottomTabNavigator() {
       
       <Tab.Screen
         name="Profile"
-        component={Profile}
+        component={ProfileScreen}
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="kitchen" size={24} color="black" />

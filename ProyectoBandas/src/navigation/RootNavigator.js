@@ -1,10 +1,12 @@
-import { NavigationContainer } from '@react-navigation/native';
-import LoginStackNavigator from './LoginStackNavigator'
+import React from 'react';
+import { StatusBar } from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import LoginStackNavigator from './LoginStackNavigator';
 
 export default function RootNavigator() {
     return (
         <NavigationContainer>
-            <LoginStackNavigator/>
+            <LoginStackNavigator />
         </NavigationContainer>
     );
 }
