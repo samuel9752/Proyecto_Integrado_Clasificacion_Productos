@@ -7,7 +7,7 @@ import BottomTabNavigator from '../navigation/BottomTabNavigator'
 // Creamos nuestro Stack Navigator.
 const Stack = createNativeStackNavigator();
 
-export default function EventStackNavigator() {
+export default function LoginStackNavigator() {
     return (
         <Stack.Navigator>
             <Stack.Screen

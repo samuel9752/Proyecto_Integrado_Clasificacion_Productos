@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyAS4mZiX7RC-STZykUFT6gmIg_OH0Ea1zM",
-  authDomain: "bd-heinzel.firebaseapp.com",
-  projectId: "bd-heinzel",
-  storageBucket: "bd-heinzel.firebasestorage.app",
-  messagingSenderId: "1003761662577",
-  appId: "1:1003761662577:web:196c694db21e53cdc4f9d0"
+  apiKey: "AIzaSyCXHVvXD9SOEpie7BGoG6KLeSwqswUifxc",
+  authDomain: "banda-clasificadora-firebase.firebaseapp.com",
+  projectId: "banda-clasificadora-firebase",
+  storageBucket: "banda-clasificadora-firebase.firebasestorage.app",
+  messagingSenderId: "215817803953",
+  appId: "1:215817803953:web:15f8e2c20a7ddcd5ae2a90",
+  measurementId: "G-NDVXF3E1KZ"
 };

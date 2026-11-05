@@ -31,7 +31,6 @@ export default function BottomTabNavigator() {
           )
         }}
       />
-
       <Tab.Screen
         name="Usuario"
         component={UsuarioScreen}
@@ -41,8 +40,6 @@ export default function BottomTabNavigator() {
           )
         }}
       />
-
-      
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
