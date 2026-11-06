@@ -4,6 +4,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import AdminBottomTabNavigator from './AdminBottomTabNavigator'
 import UserBottomTabNavigator from './UserBottomTabNavigator';
+import AdminLoginScreen from '../screens/Admin/AdminLoginScreen';
 
 // Creamos nuestro Stack Navigator.
 const Stack = createNativeStackNavigator();
@@ -14,6 +15,13 @@ export default function LoginStackNavigator() {
             <Stack.Screen
                 name='Login'
                 component={LoginScreen}
+                options={{
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name='AdminLoginScreen'
+                component={AdminLoginScreen}
                 options={{
                     headerShown: false
                 }}
@@ -39,7 +47,6 @@ export default function LoginStackNavigator() {
                     headerShown: false
                 }}
             />
-            
         </Stack.Navigator>
     )
 }

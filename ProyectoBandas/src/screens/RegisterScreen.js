@@ -1,24 +1,169 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput} from 'react-native'
+import { Picker } from '@react-native-picker/picker';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { firebaseConfig } from '../firebase/FirebaseConfig'
+import { useState } from 'react'
 
-export default function RegisterScreen() {
+import Feather1 from '@expo/vector-icons/Feather';
+import Feather2 from '@expo/vector-icons/Feather';
+
+export default function RegisterScreen({ navigation }) {
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [tipoUsuario, setTipoUsuario] = useState('');
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const Registro = async () => {
+  if (tipoUsuario === '') {
+    alert('Por favor, selecciona un tipo de usuario');
+    return;
+  }
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Guardar información del usuario en Firestore
+    await setDoc(doc(db, 'usuarios', user.uid), {
+      correo: email,
+      tipoUsuario: tipoUsuario
+    });
+    alert('Usuario creado correctamente');
+    navigation.navigate('Login');
+  } catch (error) {
+    alert(error.message);
+  }
+
+};
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Registro de Usuario</Text>
-      <StatusBar style="auto" />
-    </View>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Crear una cuenta</Text>
+        <Text style={styles.subtitle}>Únete a nosotros</Text>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder='Correo electrónico'
+            placeholderTextColor="#999"
+            keyboardType='email-address'
+            autoCapitalize='none'
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Contraseña"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Text style={{ paddingLeft: 15, paddingVertical: 12 }}>
+              {showPassword
+                ? <Feather2 name="eye" size={21} color="black" />     // Ícono de ojo abierto (contraseña visible)
+                : <Feather1 name="eye-off" size={21} color="black" /> // Ícono de ojo tachado (contraseña oculta)
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Picker
+            selectedValue={tipoUsuario}
+            onValueChange={(itemValue) => setTipoUsuario(itemValue)}
+            style={styles.input}
+          >
+            <Picker.Item label="Selecciona tipo" value="" />
+            <Picker.Item label="Administrador" value="Administrador" />
+            <Picker.Item label="Cliente" value="Cliente" />
+          </Picker>
+        </View>
+
+        <TouchableOpacity style={styles.registerButton} onPress={Registro}>
+          <Text style={styles.registerButtonText}>Registrarse</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.loginLinkText}>¿Ya tienes cuenta? Inicia Sesión</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
-  text: {
+  formContainer: {
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 5,
+    textAlign: 'center',
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    backgroundColor: '#f8f8f8',
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+  },
+  registerButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  registerButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loginLink: {
+    alignItems: 'center',
+  },
+  loginLinkText: {
+    color: '#007AFF',
+    fontSize: 14,
   },
 });
