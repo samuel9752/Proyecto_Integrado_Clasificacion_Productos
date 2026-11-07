@@ -3,8 +3,8 @@ import { Picker } from '@react-native-picker/picker';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { firebaseConfig } from '../firebase/FirebaseConfig'
-import { useState } from 'react'
+import { firebaseConfig } from '../firebase/FirebaseConfig';
+import { useState } from 'react';
 
 import Feather1 from '@expo/vector-icons/Feather';
 import Feather2 from '@expo/vector-icons/Feather';
@@ -20,25 +20,18 @@ export default function RegisterScreen({ navigation }) {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  const Registro = async () => {
-  if (tipoUsuario === '') {
-    alert('Por favor, selecciona un tipo de usuario');
-    return;
-  }
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Guardar información del usuario en Firestore
-    await setDoc(doc(db, 'usuarios', user.uid), {
-      correo: email,
-      tipoUsuario: tipoUsuario
-    });
-    alert('Usuario creado correctamente');
-    navigation.navigate('Login');
-  } catch (error) {
-    alert(error.message);
-  }
+  // Función que se ejecuta al presionar el botón "Registrarse".
+    const Registro = () =>{
+        // Llamamos a Firebase para crear un usuario con correo y contraseña.
+        createUserWithEmailAndPassword(auth, email, password)
+        .then(()=>{
+          alert('Usuario creado')
+          navigation.navigate('Login') // Navegamos a la pantalla de Login después de registrarse.
+        })
+        .catch(error => {
+          // Si ocurre un error (ej: correo inválido, contraseña débil), lo mostramos.
+          alert(error)
+        })
 
 };
   return (
@@ -76,18 +69,6 @@ export default function RegisterScreen({ navigation }) {
               }
             </Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Picker
-            selectedValue={tipoUsuario}
-            onValueChange={(itemValue) => setTipoUsuario(itemValue)}
-            style={styles.input}
-          >
-            <Picker.Item label="Selecciona tipo" value="" />
-            <Picker.Item label="Administrador" value="Administrador" />
-            <Picker.Item label="Cliente" value="Cliente" />
-          </Picker>
         </View>
 
         <TouchableOpacity style={styles.registerButton} onPress={Registro}>

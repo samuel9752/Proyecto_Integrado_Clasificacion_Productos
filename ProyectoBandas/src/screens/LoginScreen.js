@@ -17,7 +17,10 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = () => {
     signInWithEmailAndPassword(auth, email, password)
       .then(() => {
-        navigation.navigate('AdminBottomTabNavigator');
+        alert('Inicio de sesión exitoso');
+        setEmail('');
+        setPassword('');
+        navigation.navigate('UserBottomTabNavigator'); // Navegamos a la pantalla principal del usuario después de iniciar sesión.
       })
       .catch(error => {
         alert(error);
