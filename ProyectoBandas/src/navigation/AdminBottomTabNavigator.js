@@ -4,10 +4,11 @@ import AdminProfileScreen from '../screens/Admin/AdminProfileScreen';
 import HitorialVentasScreen from '../screens/Admin/HistorialVentasScreen';
 import ExistenciasScreen from '../screens/Admin/ExistenciasScreen';
 import AdminScreen from '../screens/Admin/AdminScreen';
-
+import DetectorScreen from '../screens/Admin/DetectorScreen';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
+import DetectorScreen from '../screens/Admin/DetectorScreen';
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 const Tab = createBottomTabNavigator();
 
@@ -47,6 +48,15 @@ export default function BottomTabNavigator() {
         options={{
           tabBarIcon: () => (
             <MaterialIcons name="kitchen" size={24} color="black" />
+          )
+        }}
+      />
+       <Tab.Screen
+        name="Sobrecalentamiento"
+        component={DetectorScreen}
+        options={{
+          tabBarIcon: () => (
+            <AntDesign name="fire" size={24} color="black" />
           )
         }}
       />
