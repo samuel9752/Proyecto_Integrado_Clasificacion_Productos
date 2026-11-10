@@ -237,9 +237,7 @@ export default function AdminScreen() {
 }
 
 
-// ========================================
-// ESTILOS
-// ========================================
+
 
 const styles = StyleSheet.create({
 

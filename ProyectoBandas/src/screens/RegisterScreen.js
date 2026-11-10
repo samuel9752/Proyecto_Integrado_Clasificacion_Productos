@@ -31,7 +31,7 @@ import {
   getApps
 } from 'firebase/app';
 
-import firebaseConfig from '../firebase/FirebaseConfig';
+import { firebaseConfig } from '../firebase/FirebaseConfig';
 
 import Logo from '../../assets/logo.jpeg';
 import Fondo_2 from '../../assets/Fondo_2.jpeg';
