@@ -1,12 +1,38 @@
 
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
 
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  ImageBackground,
+  Image,
+  useWindowDimensions
+} from 'react-native';
+
+import {
+  getAuth,
+  signInWithEmailAndPassword
+} from 'firebase/auth';
+
+import {
+  initializeApp,
+  getApps
+} from 'firebase/app';
+
+import {
+  getFirestore,
+  doc,
+  getDoc
+} from 'firebase/firestore';
 
 import { firebaseConfig } from '../firebase/FirebaseConfig';
-import { useState } from 'react';
+
+import Logo from '../../assets/logo.jpeg';
+import Fondo_1 from '../../assets/Fondo_2.jpeg';
 
 import Feather from '@expo/vector-icons/Feather';
 
@@ -15,6 +41,9 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const { width, height } = useWindowDimensions();
+  const isTablet = width >= 768;
 
   // Conexión con Firebase
   const app = getApps().length === 0
@@ -32,15 +61,11 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    // Comprobar correo y contraseña
     signInWithEmailAndPassword(auth, email, password)
 
       .then((resultado) => {
 
-        // Obtener el UID del usuario
         const uid = resultado.user.uid;
-
-        // Buscar sus datos en Firestore
         const referencia = doc(db, 'usuarios', uid);
 
         return getDoc(referencia);
@@ -51,7 +76,6 @@ export default function LoginScreen({ navigation }) {
 
         if (documento.exists()) {
 
-          // Obtener el tipo de usuario
           const datos = documento.data();
           const tipo = datos.tipoUsuario;
 
@@ -62,14 +86,12 @@ export default function LoginScreen({ navigation }) {
 
             alert('Bienvenido administrador');
 
-            // Ir a la pantalla que solicita el código
             navigation.navigate('AdminLoginScreen');
 
           } else {
 
             alert('Inicio de sesión exitoso');
 
-            // Ir al menú principal del usuario
             navigation.navigate('UserBottomTabNavigator');
 
           }
@@ -91,162 +113,278 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
 
-      <View style={styles.formContainer}>
+    <ImageBackground
+      source={Fondo_1}
+      style={styles.background}
+      resizeMode="cover"
+    >
 
-        <Text style={styles.title}>Iniciar Sesión</Text>
+      <View style={styles.overlay}>
 
-        <Text style={styles.subtitle}>Bienvenido de nuevo</Text>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            {
+              minHeight: height,
+              paddingHorizontal: isTablet ? 50 : 20,
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
 
-        {/* Correo electrónico */}
-        <View style={styles.inputContainer}>
+          <View
+            style={[
+              styles.formContainer,
+              {
+                width: isTablet ? '75%' : '100%',
+                maxWidth: isTablet ? 650 : 450,
+                padding: isTablet ? 40 : 25,
+              }
+            ]}
+          >
 
-          <TextInput
-            style={styles.input}
-            placeholder="Correo electrónico"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+            {/* Logo */}
+            <Image
+              source={Logo}
+              style={[
+                styles.logo,
+                {
+                  width: isTablet ? 350 : 230,
+                  height: isTablet ? 170 : 120,
+                }
+              ]}
+              resizeMode="contain"
+            />
 
-        </View>
-
-        {/* Contraseña */}
-        <View style={styles.inputContainer}>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-          />
-
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-
-            <Text style={{ paddingLeft: 15, paddingVertical: 12 }}>
-
-              <Feather
-                name={showPassword ? "eye" : "eye-off"}
-                size={21}
-                color="black"
-              />
-
+            {/* Título */}
+            <Text
+              style={[
+                styles.title,
+                { fontSize: isTablet ? 36 : 26 }
+              ]}
+            >
+              Iniciar Sesión
             </Text>
 
-          </TouchableOpacity>
+            <Text
+              style={[
+                styles.subtitle,
+                { fontSize: isTablet ? 20 : 16 }
+              ]}
+            >
+              Bienvenido de nuevo
+            </Text>
 
-        </View>
+            {/* Correo electrónico */}
+            <View style={styles.inputContainer}>
 
-        {/* Botón iniciar sesión */}
-        <TouchableOpacity
-          style={styles.loginButton}
-          onPress={handleLogin}
-        >
+              <Feather
+                name="mail"
+                size={isTablet ? 23 : 20}
+                color="#B8D4F5"
+              />
 
-          <Text style={styles.loginButtonText}>
-            Iniciar Sesión
-          </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { fontSize: isTablet ? 19 : 16 }
+                ]}
+                placeholder="Correo electrónico"
+                placeholderTextColor="#B8CBE0"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
 
-        </TouchableOpacity>
+            </View>
 
-        {/* Enlace de registro */}
-        <TouchableOpacity
-          style={styles.registerLink}
-          onPress={() => navigation.navigate('Register')}
-        >
+            {/* Contraseña */}
+            <View style={styles.inputContainer}>
 
-          <Text style={styles.registerLinkText}>
-            ¿No tienes cuenta? Regístrate
-          </Text>
+              <Feather
+                name="lock"
+                size={isTablet ? 23 : 20}
+                color="#B8D4F5"
+              />
 
-        </TouchableOpacity>
+              <TextInput
+                style={[
+                  styles.input,
+                  { fontSize: isTablet ? 19 : 16 }
+                ]}
+                placeholder="Contraseña"
+                placeholderTextColor="#B8CBE0"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+              >
+
+                <Feather
+                  name={showPassword ? "eye" : "eye-off"}
+                  size={isTablet ? 24 : 21}
+                  color="#FFFFFF"
+                />
+
+              </TouchableOpacity>
+
+            </View>
+
+            {/* Botón iniciar sesión */}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                { padding: isTablet ? 20 : 16 }
+              ]}
+              onPress={handleLogin}
+            >
+
+              <Text
+                style={[
+                  styles.loginButtonText,
+                  { fontSize: isTablet ? 21 : 16 }
+                ]}
+              >
+                Iniciar Sesión
+              </Text>
+
+              <Feather
+                name="arrow-right"
+                size={isTablet ? 25 : 20}
+                color="white"
+              />
+
+            </TouchableOpacity>
+
+            {/* Enlace de registro */}
+            <TouchableOpacity
+              style={styles.registerLink}
+              onPress={() => navigation.navigate('Register')}
+            >
+
+              <Text
+                style={[
+                  styles.registerLinkText,
+                  { fontSize: isTablet ? 18 : 14 }
+                ]}
+              >
+                ¿No tienes cuenta? Regístrate
+              </Text>
+
+            </TouchableOpacity>
+
+          </View>
+
+        </ScrollView>
 
       </View>
 
-    </ScrollView>
+    </ImageBackground>
+
   );
 
 }
 
 const styles = StyleSheet.create({
 
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    paddingVertical: 35,
   },
 
   formContainer: {
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: 'rgba(5, 35, 75, 0.85)',
+    borderRadius: 25,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.20)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.30,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  logo: {
+    marginBottom: 20,
   },
 
   title: {
-    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 5,
     textAlign: 'center',
-    color: '#333',
+    color: '#FFFFFF',
+    marginBottom: 5,
   },
 
   subtitle: {
-    fontSize: 16,
     textAlign: 'center',
-    color: '#666',
-    marginBottom: 20,
+    color: '#D6E8FF',
+    marginBottom: 30,
   },
 
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#ddd',
+    borderColor: 'rgba(255, 255, 255, 0.30)',
     borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    marginBottom: 20,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    width: '100%',
   },
 
   input: {
     flex: 1,
-    height: 50,
-    fontSize: 16,
+    height: 58,
+    color: '#FFFFFF',
+    paddingHorizontal: 12,
   },
 
   loginButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    marginTop: 10,
+    marginBottom: 25,
+    gap: 12,
+    width: '100%',
   },
 
   loginButtonText: {
     color: 'white',
-    fontSize: 16,
     fontWeight: 'bold',
   },
 
   registerLink: {
     alignItems: 'center',
+    padding: 8,
   },
 
   registerLinkText: {
-    color: '#007AFF',
-    fontSize: 14,
+    color: '#D6E8FF',
     textAlign: 'center',
+    fontWeight: '600',
   },
 
 });
