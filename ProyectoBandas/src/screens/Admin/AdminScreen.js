@@ -265,10 +265,11 @@ const styles = StyleSheet.create({
   },
 
   welcomeTitle: {
-    fontSize: 25,
+    fontSize: 35,
     fontWeight: 'bold',
     color: '#252B35',
-    textAlign: 'center'
+    textAlign: 'center',
+    padding: '80'
   },
 
   welcomeSubtitle: {
