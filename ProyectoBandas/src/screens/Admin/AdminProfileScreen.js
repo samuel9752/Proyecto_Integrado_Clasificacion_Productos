@@ -114,6 +114,7 @@ export default function AdminProfileScreen() {
             try {
 
               await signOut(auth);
+              navigation.navigate('Login');
 
             } catch (error) {
 
