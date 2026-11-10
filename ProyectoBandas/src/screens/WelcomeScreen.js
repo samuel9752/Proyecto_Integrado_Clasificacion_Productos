@@ -18,57 +18,33 @@ export default function WelcomeScreen({ navigation }) {
             <View style={styles.formContainer}>
 
                 <View style={styles.iconContainer}>
-                    <Feather name="layers" size={55} color="#007AFF" />
+                    <Feather name="layers" size={65} color="#007AFF" />
                 </View>
 
-                <Text style={styles.title}>Clasificador de bebidas</Text>
+                <Text style={styles.title}>
+                    Clasificador de bebidas
+                </Text>
 
                 <Text style={styles.subtitle}>
                     Sistema de clasificación de productos
                 </Text>
 
                 <Text style={styles.description}>
-                    Bienvenido. Selecciona el tipo de acceso que deseas utilizar.
+                    ¡Bienvenido a nuestro sistema!
+                    {'\n\n'}
+                    Administra y consulta la información de los productos
+                    de manera sencilla.
                 </Text>
 
-                {/* Acceso Usuario */}
                 <TouchableOpacity
-                    style={styles.userButton}
+                    style={styles.button}
                     onPress={() => navigation.navigate('Login')}
                 >
-                    <Feather name="user" size={23} color="white" />
+                    <Text style={styles.buttonText}>
+                        Comenzar
+                    </Text>
 
-                    <View style={styles.buttonTextContainer}>
-                        <Text style={styles.buttonTitle}>
-                            Usuario
-                        </Text>
-
-                        <Text style={styles.buttonDescription}>
-                            Iniciar sesión o crear una cuenta
-                        </Text>
-                    </View>
-
-                    <Feather name="chevron-right" size={23} color="white" />
-                </TouchableOpacity>
-
-                {/* Acceso Administrador */}
-                <TouchableOpacity
-                    style={styles.adminButton}
-                    onPress={() => navigation.navigate('AdminLoginScreen')}
-                >
-                    <Feather name="shield" size={23} color="#007AFF" />
-
-                    <View style={styles.buttonTextContainer}>
-                        <Text style={styles.adminButtonTitle}>
-                            Administrador
-                        </Text>
-
-                        <Text style={styles.adminButtonDescription}>
-                            Acceso al panel administrativo
-                        </Text>
-                    </View>
-
-                    <Feather name="chevron-right" size={23} color="#007AFF" />
+                    <Feather name="arrow-right" size={20} color="white" />
                 </TouchableOpacity>
 
                 <Text style={styles.footer}>
@@ -103,7 +79,7 @@ const styles = StyleSheet.create({
 
     iconContainer: {
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 20,
     },
 
     title: {
@@ -117,63 +93,32 @@ const styles = StyleSheet.create({
         fontSize: 15,
         textAlign: 'center',
         color: '#666',
-        marginTop: 5,
+        marginTop: 8,
     },
 
     description: {
         fontSize: 14,
         textAlign: 'center',
         color: '#777',
-        marginTop: 25,
-        marginBottom: 25,
+        marginTop: 30,
+        marginBottom: 30,
+        lineHeight: 22,
     },
 
-    userButton: {
+    button: {
         flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#007AFF',
-        padding: 15,
+        padding: 16,
         borderRadius: 8,
-        marginBottom: 15,
+        gap: 10,
     },
 
-    adminButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8f8f8',
-        borderColor: '#007AFF',
-        borderWidth: 1,
-        padding: 15,
-        borderRadius: 8,
-    },
-
-    buttonTextContainer: {
-        flex: 1,
-        marginLeft: 12,
-    },
-
-    buttonTitle: {
+    buttonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
-    },
-
-    buttonDescription: {
-        color: '#e8f2ff',
-        fontSize: 12,
-        marginTop: 3,
-    },
-
-    adminButtonTitle: {
-        color: '#007AFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-
-    adminButtonDescription: {
-        color: '#666',
-        fontSize: 12,
-        marginTop: 3,
     },
 
     footer: {

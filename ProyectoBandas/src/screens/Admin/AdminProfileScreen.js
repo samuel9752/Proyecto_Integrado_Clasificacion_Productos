@@ -32,7 +32,7 @@ import { firebaseConfig } from '../../firebase/FirebaseConfig';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-export default function AdminProfileScreen() {
+export default function AdminProfileScreen({ navigation }) {
 
   const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -98,41 +98,42 @@ export default function AdminProfileScreen() {
 
   const cerrarSesion = () => {
 
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que deseas cerrar tu sesión de administrador?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel'
-        },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
+  Alert.alert(
+    'Cerrar sesión',
+    '¿Estás seguro de que deseas cerrar tu sesión de administrador?',
+    [
+      {
+        text: 'Cancelar',
+        style: 'cancel'
+      },
+      {
+        text: 'Cerrar sesión',
+        style: 'destructive',
+        onPress: async () => {
 
-            try {
+          try {
 
-              await signOut(auth);
-              navigation.navigate('Login');
+            await signOut(auth);
 
-            } catch (error) {
+            navigation.getParent()?.navigate('Login');
 
-              console.log('Error al cerrar sesión:', error);
+          } catch (error) {
 
-              Alert.alert(
-                'Error',
-                'No se pudo cerrar la sesión.'
-              );
+            console.log('Error al cerrar sesión:', error);
 
-            }
+            Alert.alert(
+              'Error',
+              'No se pudo cerrar la sesión.'
+            );
 
           }
-        }
-      ]
-    );
 
-  };
+        }
+      }
+    ]
+  );
+
+};
 
   // CARGANDO PERFIL
 

@@ -1,35 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator
-} from 'react-native';
-
-import {
-  getAuth,
-  onAuthStateChanged
-} from 'firebase/auth';
-
-import {
-  getFirestore,
-  doc,
-  getDoc
-} from 'firebase/firestore';
-
-import {
-  initializeApp,
-  getApps
-} from 'firebase/app';
-
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity} from 'react-native';
+import { getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
+import { getFirestore, doc, getDoc} from 'firebase/firestore';
+import { initializeApp, getApps} from 'firebase/app';
 import { firebaseConfig } from '../../firebase/FirebaseConfig';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-export default function UserProfileScreen() {
+export default function UserProfileScreen({ navigation }) {
 
   const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -41,14 +20,41 @@ export default function UserProfileScreen() {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  useEffect(() => {
+  // CERRAR SESIÓN
+  const cerrarSesion = () => {
+    Alert.alert('Cerrando sesión', '¿Estas seguro de cerrar sesion?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              navigation.getParent()?.navigate('Login');
+            } catch (error) {
+              console.log('Error al cerrar sesión:', error);
+              Alert.alert(
+                'Error',
+                'No se pudo cerrar la sesión.'
+              );
+            }
+          }
+        }
+      ]
+    );
 
+  };
+
+  // DETECTAR USUARIO AUTENTICADO
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (user) => {
-
         if (user) {
-
           try {
 
             const referencia = doc(
@@ -91,7 +97,8 @@ export default function UserProfileScreen() {
 
   }, []);
 
-  // Cargando perfil
+  // CARGANDO PERFIL
+
   if (cargando) {
 
     return (
@@ -111,7 +118,8 @@ export default function UserProfileScreen() {
 
   }
 
-  // Usuario no autenticado
+  // USUARIO NO AUTENTICADO
+
   if (!usuario) {
 
     return (
@@ -373,6 +381,26 @@ export default function UserProfileScreen() {
         </View>
 
       </View>
+
+      {/* CERRAR SESIÓN */}
+
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={cerrarSesion}
+        activeOpacity={0.8}
+      >
+
+        <MaterialIcons
+          name="logout"
+          size={22}
+          color="#FFFFFF"
+        />
+
+        <Text style={styles.logoutButtonText}>
+          Cerrar sesión
+        </Text>
+
+      </TouchableOpacity>
 
       {/* PIE DE PÁGINA */}
 
@@ -655,6 +683,26 @@ const styles = StyleSheet.create({
   pepsiText: {
     fontSize: 16,
     color: '#0756A5',
+    fontWeight: 'bold'
+  },
+
+  // CERRAR SESIÓN
+
+  logoutButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E5252A',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    gap: 10,
+    elevation: 2
+  },
+
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold'
   },
 
