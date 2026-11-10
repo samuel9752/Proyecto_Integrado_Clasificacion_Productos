@@ -5,9 +5,9 @@ import HitorialVentasScreen from '../screens/Admin/HistorialVentasScreen';
 import ExistenciasScreen from '../screens/Admin/ExistenciasScreen';
 import AdminScreen from '../screens/Admin/AdminScreen';
 import DetectorScreen from '../screens/Admin/DetectorScreen';
+
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import DetectorScreen from '../screens/Admin/DetectorScreen';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 const Tab = createBottomTabNavigator();

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -7,7 +8,8 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -19,8 +21,7 @@ import {
   getFirestore,
   doc,
   onSnapshot,
-  updateDoc,
-  setDoc
+  updateDoc
 } from 'firebase/firestore';
 
 const app = getApps().length
@@ -127,7 +128,9 @@ export default function DetectorScreen() {
         backgroundColor="#171B24"
       />
 
+      {/* ENCABEZADO */}
       <View style={styles.header}>
+
         <Text style={styles.headerTitle}>
           SMART VENDING SYSTEM
         </Text>
@@ -135,9 +138,15 @@ export default function DetectorScreen() {
         <Text style={styles.headerSubtitle}>
           Seguridad y monitoreo
         </Text>
+
       </View>
 
-      <View style={styles.content}>
+      {/* CONTENIDO DESLIZABLE */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
 
         <Text style={styles.title}>
           Detector de seguridad
@@ -159,6 +168,7 @@ export default function DetectorScreen() {
 
           <>
 
+            {/* TARJETA DE ESTADO */}
             <View style={[
               styles.statusCard,
               alertaActiva ? styles.dangerCard : styles.normalCard
@@ -199,6 +209,7 @@ export default function DetectorScreen() {
               </Text>
 
               <View style={styles.indicator}>
+
                 <View style={[
                   styles.dot,
                   { backgroundColor: alertaActiva ? '#D9272E' : '#219653' }
@@ -207,10 +218,12 @@ export default function DetectorScreen() {
                 <Text style={styles.indicatorText}>
                   {alertaActiva ? 'ALERTA ACTIVA' : 'MONITOREO ACTIVO'}
                 </Text>
+
               </View>
 
             </View>
 
+            {/* TARJETA DEL SENSOR */}
             <View style={styles.sensorCard}>
 
               <MaterialIcons
@@ -220,6 +233,7 @@ export default function DetectorScreen() {
               />
 
               <View style={{ flex: 1, marginLeft: 15 }}>
+
                 <Text style={styles.sensorTitle}>
                   Sensor de llama
                 </Text>
@@ -230,10 +244,12 @@ export default function DetectorScreen() {
                 ]}>
                   {llamaDetectada ? 'DETECCIÓN ACTIVA' : 'SIN DETECCIÓN'}
                 </Text>
+
               </View>
 
             </View>
 
+            {/* BOTONES DE ALERTA */}
             {alertaActiva && (
 
               <View style={styles.buttons}>
@@ -242,6 +258,7 @@ export default function DetectorScreen() {
                   style={styles.ignoreButton}
                   onPress={ignorarAlerta}
                 >
+
                   <MaterialIcons
                     name="notifications-off"
                     size={22}
@@ -251,12 +268,14 @@ export default function DetectorScreen() {
                   <Text style={styles.ignoreText}>
                     Ignorar alerta
                   </Text>
+
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.shutdownButton}
                   onPress={apagarMaquina}
                 >
+
                   <MaterialIcons
                     name="power-settings-new"
                     size={23}
@@ -266,6 +285,7 @@ export default function DetectorScreen() {
                   <Text style={styles.shutdownText}>
                     Apagar máquina
                   </Text>
+
                 </TouchableOpacity>
 
               </View>
@@ -276,15 +296,19 @@ export default function DetectorScreen() {
 
         )}
 
-      </View>
+      </ScrollView>
 
+      {/* PIE DE PÁGINA */}
       <View style={styles.footer}>
+
         <Text style={styles.footerText}>
           SMART VENDING SYSTEM
         </Text>
+
         <Text style={styles.footerSubtitle}>
           Sistema inteligente de seguridad
         </Text>
+
       </View>
 
     </SafeAreaView>
@@ -316,9 +340,14 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
 
+  // CONTENEDOR DESLIZABLE
   content: {
-    flex: 1,
-    padding: 20
+    flex: 1
+  },
+
+  contentContainer: {
+    padding: 20,
+    flexGrow: 1
   },
 
   title: {
