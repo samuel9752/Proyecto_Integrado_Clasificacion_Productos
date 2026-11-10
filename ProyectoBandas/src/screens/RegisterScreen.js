@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 
 import {
@@ -34,6 +35,14 @@ import firebaseConfig from '../firebase/FirebaseConfig';
 
 import Logo from '../../assets/logo.jpeg';
 import Fondo_2 from '../../assets/Fondo_2.jpeg';
+
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
+import firebaseConfig from '../firebase/FirebaseConfig';
+import { useState } from 'react';
 
 import Feather from '@expo/vector-icons/Feather';
 

@@ -15,7 +15,7 @@ import {
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { initializeApp, getApps } from 'firebase/app';
-import { firebaseConfig } from '../../firebase/FirebaseConfig';
+import { firebaseConfig } from '../../firebase/FireBaseConfig';
 
 import {
   getFirestore,
