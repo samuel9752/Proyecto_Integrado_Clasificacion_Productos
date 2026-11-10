@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
-import firebaseConfig from '../firebase/FirebaseConfig';
+import firebaseConfig from '../firebase/FireBaseConfig';
 import { useState } from 'react';
 
 import Feather from '@expo/vector-icons/Feather';

@@ -1,4 +1,5 @@
-export const firebaseConfig = {
+export 
+const firebaseConfig = {
   apiKey: "AIzaSyCXHVvXD9SOEpie7BGoG6KLeSwqswUifxc",
   authDomain: "banda-clasificadora-firebase.firebaseapp.com",
   projectId: "banda-clasificadora-firebase",

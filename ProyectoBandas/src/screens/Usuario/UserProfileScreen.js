@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Touchable
 import { getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
 import { getFirestore, doc, getDoc} from 'firebase/firestore';
 import { initializeApp, getApps} from 'firebase/app';
-import { firebaseConfig } from '../../firebase/FirebaseConfig';
+import { firebaseConfig } from '../../firebase/FireBaseConfig';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 

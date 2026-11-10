@@ -5,7 +5,7 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
-import { firebaseConfig } from '../firebase/FirebaseConfig';
+import { firebaseConfig } from '../firebase/FireBaseConfig';
 import { useState } from 'react';
 
 import Feather from '@expo/vector-icons/Feather';
