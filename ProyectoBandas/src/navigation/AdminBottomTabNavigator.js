@@ -9,6 +9,7 @@ import DetectorScreen from '../screens/Admin/DetectorScreen';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Foundation from '@expo/vector-icons/Foundation';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,7 +30,7 @@ export default function BottomTabNavigator() {
         component={AdminScreen}
         options={{
           tabBarIcon: () => (
-            <MaterialCommunityIcons name="garage" size={24} color="black" />
+            <MaterialIcons name="admin-panel-settings" size={24} color="black" />
           )
         }}
       />
@@ -38,7 +39,7 @@ export default function BottomTabNavigator() {
         component={HitorialVentasScreen}
         options={{
           tabBarIcon: () => (
-            <MaterialIcons name="living" size={24} color="black" />
+            <Foundation name="burst-sale" size={24} color="black" />
           )
         }}
       />
@@ -47,7 +48,7 @@ export default function BottomTabNavigator() {
         component={ExistenciasScreen}
         options={{
           tabBarIcon: () => (
-            <MaterialIcons name="kitchen" size={24} color="black" />
+            <AntDesign name="stock" size={24} color="black" />
           )
         }}
       />
@@ -65,7 +66,7 @@ export default function BottomTabNavigator() {
         component={AdminProfileScreen}
         options={{
           tabBarIcon: () => (
-            <MaterialIcons name="kitchen" size={24} color="black" />
+           <MaterialIcons name="account-circle" size={24} color="black" />
           )
         }}
       />

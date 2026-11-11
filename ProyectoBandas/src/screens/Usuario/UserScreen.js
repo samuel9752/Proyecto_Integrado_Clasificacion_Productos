@@ -63,7 +63,7 @@ export default function UserScreen() {
 
           
           <Text style={styles.welcomeTitle}>
-            ¡Bienvenido, usuario!
+            ¡Bienvenido Usuario!
           </Text>
 
           <Text style={styles.welcomeSubtitle}>

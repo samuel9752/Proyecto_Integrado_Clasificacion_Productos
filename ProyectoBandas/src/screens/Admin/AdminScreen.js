@@ -62,7 +62,7 @@ export default function AdminScreen() {
         >
 
           <Text style={styles.welcomeTitle}>
-            Bienvenido, administrador
+            Bienvenido Administrador
           </Text>
 
           <Text style={styles.welcomeSubtitle}>

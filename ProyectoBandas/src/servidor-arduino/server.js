@@ -7,20 +7,24 @@ const { Server } = require('socket.io');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 
-const admin = require('firebase-admin');
-
 // ============================================
 // FIREBASE ADMIN
 // ============================================
 
+const { initializeApp, cert } = require('firebase-admin/app');
+
+const {
+  getFirestore,
+  FieldValue
+} = require('firebase-admin/firestore');
+
 const serviceAccount = require('./serviceAccountKey.json');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+initializeApp({
+  credential: cert(serviceAccount),
 });
 
-const db = admin.firestore();
-const FieldValue = admin.firestore.FieldValue;
+const db = getFirestore();
 
 // ============================================
 // SERVIDOR
@@ -63,11 +67,13 @@ const productos = {
     presentacion: 'Lata',
     precio: 8,
   },
+
   COCA_BOTELLA: {
     nombre: 'Coca-Cola',
     presentacion: 'Botella',
     precio: 12,
   },
+
   PEPSI_LATA: {
     nombre: 'Pepsi',
     presentacion: 'Lata',
@@ -88,7 +94,7 @@ async function guardarVenta(producto) {
   const datosProducto = productos[producto];
 
   if (!datosProducto) {
-    console.error('Producto no válido para registrar venta:', producto);
+    console.error('Producto no válido:', producto);
     return;
   }
 
@@ -108,7 +114,11 @@ async function guardarVenta(producto) {
 
     io.emit('venta:nueva', {
       id: referencia.id,
-      ...venta,
+      producto: producto,
+      nombre: datosProducto.nombre,
+      presentacion: datosProducto.presentacion,
+      precio: datosProducto.precio,
+      cantidad: 1,
       fecha: new Date().toISOString(),
     });
 
@@ -173,13 +183,17 @@ function conectarArduino() {
 
     puertoArduino.on('error', (error) => {
       conectadoArduino = false;
+
       console.error('Error serial:', error.message);
+
       enviarEstado();
     });
 
     puertoArduino.on('close', () => {
       conectadoArduino = false;
+
       console.log('Arduino desconectado');
+
       enviarEstado();
     });
 
@@ -252,7 +266,7 @@ function procesarMensajeArduino(mensaje) {
           : resultado,
     });
 
-    // Registrar venta solamente si Arduino confirma OK
+    // Registrar venta únicamente cuando Arduino confirma OK
     if (resultado === 'OK') {
       guardarVenta(producto);
     }
@@ -356,12 +370,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// Consultar inventario
+// CONSULTAR INVENTARIO
 app.get('/inventario', (req, res) => {
   res.json(inventario);
 });
 
-// Consultar historial de ventas
+// CONSULTAR HISTORIAL DE VENTAS
 app.get('/ventas', async (req, res) => {
   try {
     const resultado = await db
@@ -369,11 +383,21 @@ app.get('/ventas', async (req, res) => {
       .orderBy('fecha', 'desc')
       .get();
 
-    const ventas = resultado.docs.map((documento) => ({
-      id: documento.id,
-      ...documento.data(),
-      fecha: documento.data().fecha?.toDate().toISOString() || null,
-    }));
+    const ventas = resultado.docs.map((documento) => {
+      const datos = documento.data();
+
+      return {
+        id: documento.id,
+        producto: datos.producto,
+        nombre: datos.nombre,
+        presentacion: datos.presentacion,
+        precio: datos.precio,
+        cantidad: datos.cantidad,
+        fecha: datos.fecha
+          ? datos.fecha.toDate().toISOString()
+          : null,
+      };
+    });
 
     res.json(ventas);
 

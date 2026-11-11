@@ -14,7 +14,7 @@ import {
 import { io } from 'socket.io-client';
 
 // CAMBIA ESTA IP POR LA DIRECCIÓN IPv4 DE TU COMPUTADORA
-const SERVER_URL = 'http://192.168.1.4:3000';
+const SERVER_URL = 'http://192.168.1.120:3000';
 
 const CAPACIDAD_MAXIMA = 4;
 

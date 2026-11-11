@@ -33,15 +33,6 @@ export default function BottomTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Comprar"
-        component={CarritoUserScreen}
-        options={{
-          tabBarIcon: () => (
-            <MaterialIcons name="living" size={24} color="black" />
-          )
-        }}
-      />
-      <Tab.Screen
         name="Compras"
         component={ComprasUserScreen}
         options={{
@@ -50,6 +41,16 @@ export default function BottomTabNavigator() {
           )
         }}
       />
+      <Tab.Screen
+        name="Comprar"
+        component={CarritoUserScreen}
+        options={{
+          tabBarIcon: () => (
+            <MaterialIcons name="living" size={24} color="black" />
+          )
+        }}
+      />
+      
       <Tab.Screen
         name="Perfil"
         component={UserProfileScreen}
