@@ -2,21 +2,14 @@
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const { randomUUID } = require('crypto');
 
 const { Server } = require('socket.io');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 
-// ============================================
-// FIREBASE ADMIN
-// ============================================
-
 const { initializeApp, cert } = require('firebase-admin/app');
-
-const {
-  getFirestore,
-  FieldValue
-} = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const serviceAccount = require('./serviceAccountKey.json');
 
@@ -43,16 +36,12 @@ const io = new Server(server, {
   },
 });
 
-// ============================================
-// CONFIGURACION
-// ============================================
-
 const ARDUINO_PORT = process.env.ARDUINO_PORT || 'COM3';
 const BAUD_RATE = 9600;
 const SERVER_PORT = 3000;
 
 // ============================================
-// PRODUCTOS
+// PRODUCTOS E INVENTARIO
 // ============================================
 
 const inventario = {
@@ -67,13 +56,11 @@ const productos = {
     presentacion: 'Lata',
     precio: 8,
   },
-
   COCA_BOTELLA: {
     nombre: 'Coca-Cola',
     presentacion: 'Botella',
     precio: 12,
   },
-
   PEPSI_LATA: {
     nombre: 'Pepsi',
     presentacion: 'Lata',
@@ -81,59 +68,89 @@ const productos = {
   },
 };
 
-const pedidosPendientes = new Set();
-
 let puertoArduino = null;
 let conectadoArduino = false;
 
 // ============================================
-// GUARDAR VENTA EN FIRESTORE
+// PEDIDOS Y COLA DE ENTREGA
 // ============================================
 
-async function guardarVenta(producto) {
-  const datosProducto = productos[producto];
+const pedidos = new Map();
+const colaPedidos = [];
 
-  if (!datosProducto) {
-    console.error('Producto no válido:', producto);
-    return;
+let procesandoCola = false;
+let comandoPendiente = null;
+
+// ============================================
+// INVENTARIO EN FIRESTORE
+// ============================================
+
+async function sincronizarInventario(producto, cantidad) {
+  const datos = productos[producto];
+  if (!datos) return;
+
+  try {
+    await db.collection('inventario').doc(producto).set({
+      producto,
+      nombre: datos.nombre,
+      presentacion: datos.presentacion,
+      cantidad,
+      capacidad: 4,
+      precio: datos.precio,
+      activa: true,
+      actualizado: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error sincronizando inventario:', error.message);
   }
+}
+
+function enviarInventario() {
+  io.emit('stock', { ...inventario });
+}
+
+// ============================================
+// GUARDAR VENTA
+// ============================================
+
+async function guardarVenta(producto, usuario) {
+  const datosProducto = productos[producto];
+  if (!datosProducto) return;
 
   try {
     const venta = {
-      producto: producto,
+      producto,
       nombre: datosProducto.nombre,
       presentacion: datosProducto.presentacion,
       precio: datosProducto.precio,
       cantidad: 1,
+      total: datosProducto.precio,
+      usuario: {
+        uid: usuario.uid,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+      },
       fecha: FieldValue.serverTimestamp(),
     };
 
     const referencia = await db.collection('ventas').add(venta);
 
-    console.log('Venta guardada correctamente:', referencia.id);
+    console.log('Venta guardada:', referencia.id);
 
     io.emit('venta:nueva', {
       id: referencia.id,
-      producto: producto,
-      nombre: datosProducto.nombre,
-      presentacion: datosProducto.presentacion,
-      precio: datosProducto.precio,
-      cantidad: 1,
+      ...venta,
       fecha: new Date().toISOString(),
     });
 
   } catch (error) {
-    console.error('Error al guardar venta:', error.message);
+    console.error('Error guardando venta:', error.message);
   }
 }
 
 // ============================================
-// ENVIAR DATOS A LA APLICACION
+// ESTADO DE ARDUINO
 // ============================================
-
-function enviarInventario() {
-  io.emit('stock', { ...inventario });
-}
 
 function enviarEstado() {
   io.emit('connectionStatus', {
@@ -145,60 +162,139 @@ function enviarEstado() {
 }
 
 // ============================================
-// CONEXION SERIAL
+// ENVIAR UN PRODUCTO A ARDUINO Y ESPERAR
 // ============================================
 
-function conectarArduino() {
-  try {
-    puertoArduino = new SerialPort({
-      path: ARDUINO_PORT,
-      baudRate: BAUD_RATE,
-      autoOpen: false,
+function dispensarProducto(producto) {
+  return new Promise((resolve, reject) => {
+    if (!conectadoArduino || !puertoArduino?.isOpen) {
+      reject(new Error('Arduino no está conectado.'));
+      return;
+    }
+
+    if (comandoPendiente) {
+      reject(new Error('Hay otro comando de Arduino en proceso.'));
+      return;
+    }
+
+    const pendiente = {
+      producto,
+      resolve,
+      reject,
+      temporizador: null,
+    };
+
+    comandoPendiente = pendiente;
+
+    pendiente.temporizador = setTimeout(() => {
+      if (comandoPendiente === pendiente) {
+        comandoPendiente = null;
+        reject(new Error('Arduino no respondió a tiempo.'));
+      }
+    }, 30000);
+
+    puertoArduino.write(`DISPENSE,${producto}\n`, (error) => {
+      if (error && comandoPendiente === pendiente) {
+        clearTimeout(pendiente.temporizador);
+        comandoPendiente = null;
+        reject(new Error('No se pudo enviar el comando a Arduino.'));
+      }
     });
+  });
+}
 
-    const parser = puertoArduino.pipe(
-      new ReadlineParser({ delimiter: '\r\n' })
-    );
+// ============================================
+// ACTUALIZAR PEDIDO
+// ============================================
 
-    puertoArduino.open((error) => {
-      if (error) {
-        conectadoArduino = false;
-        console.error('No se pudo abrir Arduino:', error.message);
-        enviarEstado();
-        return;
+function emitirProgreso(pedido) {
+  io.emit('pedido:progreso', {
+    pedidoId: pedido.id,
+    estado: pedido.estado,
+    productos: pedido.productos,
+    mensaje: pedido.mensaje,
+  });
+}
+
+// ============================================
+// PROCESAR PEDIDOS DE UNO EN UNO
+// ============================================
+
+async function procesarColaPedidos() {
+  if (procesandoCola) return;
+
+  procesandoCola = true;
+
+  try {
+    while (colaPedidos.length > 0) {
+      const pedido = colaPedidos.shift();
+      pedido.estado = 'procesando';
+      pedido.mensaje = 'Preparando tu pedido.';
+      emitirProgreso(pedido);
+
+      let detenerPedido = false;
+
+      for (const item of pedido.productos) {
+        const producto = item.producto;
+
+        for (let unidad = 0; unidad < item.solicitada; unidad++) {
+          if (inventario[producto] <= 0) {
+            item.fallidas++;
+            item.resultados.push('SIN_EXISTENCIAS');
+            emitirProgreso(pedido);
+            continue;
+          }
+
+          try {
+            pedido.mensaje = `Entregando ${productos[producto].nombre} ${productos[producto].presentacion}.`;
+            emitirProgreso(pedido);
+
+            const resultado = await dispensarProducto(producto);
+
+            if (resultado === 'OK') {
+              item.entregadas++;
+              item.resultados.push('OK');
+
+              await guardarVenta(producto, pedido.usuario);
+            } else if (resultado === 'EMPTY') {
+              item.fallidas++;
+              item.resultados.push('SIN_EXISTENCIAS');
+            } else {
+              item.fallidas++;
+              item.resultados.push(resultado);
+            }
+
+            emitirProgreso(pedido);
+
+          } catch (error) {
+            item.fallidas++;
+            item.resultados.push('ERROR');
+            pedido.mensaje = error.message;
+            detenerPedido = true;
+            emitirProgreso(pedido);
+            break;
+          }
+        }
+
+        if (detenerPedido) break;
       }
 
-      conectadoArduino = true;
+      pedido.estado = detenerPedido ? 'error' : 'completado';
+      pedido.mensaje = detenerPedido
+        ? 'El pedido se detuvo por un problema de comunicación con Arduino.'
+        : 'El pedido terminó. Revisa las unidades entregadas.';
 
-      console.log('Arduino conectado en', ARDUINO_PORT);
+      pedido.finalizado = new Date().toISOString();
+      emitirProgreso(pedido);
+    }
 
-      enviarEstado();
+  } finally {
+    procesandoCola = false;
 
-      puertoArduino.write('GET_STOCK\n');
-    });
-
-    parser.on('data', (linea) => {
-      procesarMensajeArduino(linea.trim());
-    });
-
-    puertoArduino.on('error', (error) => {
-      conectadoArduino = false;
-
-      console.error('Error serial:', error.message);
-
-      enviarEstado();
-    });
-
-    puertoArduino.on('close', () => {
-      conectadoArduino = false;
-
-      console.log('Arduino desconectado');
-
-      enviarEstado();
-    });
-
-  } catch (error) {
-    console.error('Error de conexión:', error.message);
+    // Por si llegó otro pedido mientras terminaba el anterior.
+    if (colaPedidos.length > 0) {
+      procesarColaPedidos();
+    }
   }
 }
 
@@ -218,7 +314,6 @@ function procesarMensajeArduino(mensaje) {
     console.log('Sistema Arduino listo');
   }
 
-  // STOCK,PRODUCTO,CANTIDAD
   else if (tipo === 'STOCK') {
     const producto = partes[1];
     const cantidad = Number(partes[2]);
@@ -231,10 +326,10 @@ function procesarMensajeArduino(mensaje) {
     ) {
       inventario[producto] = cantidad;
       enviarInventario();
+      sincronizarInventario(producto, cantidad);
     }
   }
 
-  // EVENT,IN/OUT,PRODUCTO,CANTIDAD
   else if (tipo === 'EVENT') {
     const accion = partes[1];
     const producto = partes[2];
@@ -247,29 +342,41 @@ function procesarMensajeArduino(mensaje) {
     });
   }
 
-  // RESULT,DISPENSE,PRODUCTO,RESULTADO
   else if (tipo === 'RESULT' && partes[1] === 'DISPENSE') {
     const producto = partes[2];
     const resultado = partes[3];
 
-    pedidosPendientes.delete(producto);
+    // STARTED significa que comenzó la entrega.
+    // No se debe liberar la cola todavía.
+    if (resultado === 'STARTED') {
+      io.emit('pedido:resultado', {
+        producto,
+        resultado,
+        mensaje: 'Arduino comenzó la entrega.',
+      });
+      return;
+    }
+
+    if (
+      comandoPendiente &&
+      comandoPendiente.producto === producto
+    ) {
+      const pendiente = comandoPendiente;
+      clearTimeout(pendiente.temporizador);
+      comandoPendiente = null;
+      pendiente.resolve(resultado);
+    }
 
     io.emit('pedido:resultado', {
       producto,
       nombre: productos[producto]?.nombre || producto,
       resultado,
-      mensaje:
-        resultado === 'OK'
-          ? 'La bebida fue entregada correctamente.'
-          : resultado === 'EMPTY'
-          ? 'No hay existencias de este producto.'
-          : resultado,
+      mensaje: resultado === 'OK'
+        ? 'Arduino terminó el ciclo de entrega.'
+        : resultado === 'EMPTY'
+        ? 'No hay existencias de este producto.'
+        : resultado,
     });
-
-    // Registrar venta únicamente cuando Arduino confirma OK
-    if (resultado === 'OK') {
-      guardarVenta(producto);
-    }
   }
 
   else if (tipo === 'FULL') {
@@ -290,92 +397,209 @@ function procesarMensajeArduino(mensaje) {
 }
 
 // ============================================
-// RECIBIR PEDIDOS DESDE REACT NATIVE
+// CONEXIÓN SERIAL
 // ============================================
 
-io.on('connection', (socket) => {
-  console.log('Aplicación conectada:', socket.id);
+function conectarArduino() {
+  try {
+    puertoArduino = new SerialPort({
+      path: ARDUINO_PORT,
+      baudRate: BAUD_RATE,
+      autoOpen: false,
+    });
 
-  socket.emit('stock', { ...inventario });
+    const parser = puertoArduino.pipe(
+      new ReadlineParser({ delimiter: '\n' })
+    );
 
-  socket.emit('connectionStatus', {
-    conectado: conectadoArduino,
-    mensaje: conectadoArduino
-      ? 'Arduino conectado'
-      : 'Arduino desconectado',
-  });
-
-  socket.on('pedido', (datos) => {
-    const producto = datos?.producto;
-
-    if (!Object.prototype.hasOwnProperty.call(inventario, producto)) {
-      socket.emit('pedido:respuesta', {
-        ok: false,
-        mensaje: 'Producto no válido.',
-      });
-      return;
-    }
-
-    if (!conectadoArduino || !puertoArduino?.isOpen) {
-      socket.emit('pedido:respuesta', {
-        ok: false,
-        mensaje: 'Arduino no está conectado.',
-      });
-      return;
-    }
-
-    if (pedidosPendientes.has(producto)) {
-      socket.emit('pedido:respuesta', {
-        ok: false,
-        mensaje: 'Ya hay un pedido en proceso para este producto.',
-      });
-      return;
-    }
-
-    pedidosPendientes.add(producto);
-
-    puertoArduino.write(`DISPENSE,${producto}\n`, (error) => {
+    puertoArduino.open((error) => {
       if (error) {
-        pedidosPendientes.delete(producto);
-
-        socket.emit('pedido:respuesta', {
-          ok: false,
-          mensaje: 'No se pudo enviar el pedido a Arduino.',
-        });
-
+        conectadoArduino = false;
+        console.error('No se pudo abrir Arduino:', error.message);
+        enviarEstado();
         return;
       }
 
-      socket.emit('pedido:respuesta', {
-        ok: true,
-        mensaje: `Pedido enviado: ${productos[producto].nombre}`,
-      });
+      conectadoArduino = true;
+      console.log('Arduino conectado en', ARDUINO_PORT);
+
+      enviarEstado();
+      puertoArduino.write('GET_STOCK\n');
     });
+
+    parser.on('data', (linea) => {
+      procesarMensajeArduino(linea.trim());
+    });
+
+    puertoArduino.on('error', (error) => {
+      conectadoArduino = false;
+      console.error('Error serial:', error.message);
+      enviarEstado();
+
+      if (comandoPendiente) {
+        clearTimeout(comandoPendiente.temporizador);
+        comandoPendiente.reject(new Error('Se perdió la conexión con Arduino.'));
+        comandoPendiente = null;
+      }
+    });
+
+    puertoArduino.on('close', () => {
+      conectadoArduino = false;
+      console.log('Arduino desconectado');
+      enviarEstado();
+    });
+
+  } catch (error) {
+    console.error('Error de conexión:', error.message);
+  }
+}
+
+// ============================================
+// CREAR PEDIDO DESDE LA APLICACIÓN
+// ============================================
+
+app.post('/pedido', (req, res) => {
+  const items = req.body?.items;
+  const usuarioRecibido = req.body?.usuario;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'El carrito está vacío.',
+    });
+  }
+
+  if (
+    !usuarioRecibido?.uid ||
+    !usuarioRecibido?.correo
+  ) {
+    return res.status(400).json({
+      ok: false,
+      mensaje: 'No se recibió la información del usuario.',
+    });
+  }
+
+  if (!conectadoArduino || !puertoArduino?.isOpen) {
+    return res.status(503).json({
+      ok: false,
+      mensaje: 'Arduino no está conectado.',
+    });
+  }
+
+  const productosPedido = [];
+
+  for (const item of items) {
+    const producto = item.producto;
+    const cantidad = Number(item.cantidad);
+
+    if (!Object.prototype.hasOwnProperty.call(productos, producto)) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: `Producto no válido: ${producto}`,
+      });
+    }
+
+    if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 4) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'Cada producto debe tener entre 1 y 4 unidades.',
+      });
+    }
+
+    if (cantidad > inventario[producto]) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: `No hay suficientes existencias de ${productos[producto].nombre} ${productos[producto].presentacion}.`,
+      });
+    }
+
+    productosPedido.push({
+      producto,
+      solicitada: cantidad,
+      entregadas: 0,
+      fallidas: 0,
+      resultados: [],
+    });
+  }
+
+  const usuario = {
+    uid: String(usuarioRecibido.uid),
+    correo: String(usuarioRecibido.correo),
+    nombre: String(
+      usuarioRecibido.nombre ||
+      usuarioRecibido.correo.split('@')[0]
+    ),
+  };
+
+  const pedido = {
+    id: randomUUID(),
+    usuario,
+    productos: productosPedido,
+    estado: 'en_cola',
+    mensaje: 'Tu pedido está en espera.',
+    creado: new Date().toISOString(),
+  };
+
+  pedidos.set(pedido.id, pedido);
+  colaPedidos.push(pedido);
+
+  res.status(202).json({
+    ok: true,
+    pedidoId: pedido.id,
+    mensaje: 'Pedido recibido correctamente.',
   });
 
-  socket.on('disconnect', () => {
-    console.log('Aplicación desconectada:', socket.id);
+  procesarColaPedidos();
+});
+
+// ============================================
+// CONSULTAR ESTADO DE UN PEDIDO
+// ============================================
+
+app.get('/pedido/:id', (req, res) => {
+  const pedido = pedidos.get(req.params.id);
+
+  if (!pedido) {
+    return res.status(404).json({
+      ok: false,
+      mensaje: 'No se encontró el pedido.',
+    });
+  }
+
+  res.json({
+    ok: true,
+    pedidoId: pedido.id,
+    estado: pedido.estado,
+    mensaje: pedido.mensaje,
+    productos: pedido.productos,
+    creado: pedido.creado,
+    finalizado: pedido.finalizado || null,
   });
 });
 
 // ============================================
-// RUTAS DEL SERVIDOR
+// RUTAS GENERALES
 // ============================================
 
 app.get('/', (req, res) => {
   res.json({
-    servidor: 'Servidor de la máquina expendedora SMARTGO',
+    servidor: 'SMARTGO',
     arduino: conectadoArduino,
     inventario,
   });
 });
 
-// CONSULTAR INVENTARIO
 app.get('/inventario', (req, res) => {
-  res.json(inventario);
+  res.json({
+    conectado: conectadoArduino,
+    productos: inventario,
+  });
 });
 
-// CONSULTAR HISTORIAL DE VENTAS
+// ============================================
+// HISTORIAL DE VENTAS
+// ============================================
+
 app.get('/ventas', async (req, res) => {
   try {
     const resultado = await db
@@ -393,6 +617,8 @@ app.get('/ventas', async (req, res) => {
         presentacion: datos.presentacion,
         precio: datos.precio,
         cantidad: datos.cantidad,
+        total: datos.total,
+        usuario: datos.usuario || null,
         fecha: datos.fecha
           ? datos.fecha.toDate().toISOString()
           : null,
@@ -411,10 +637,11 @@ app.get('/ventas', async (req, res) => {
 });
 
 // ============================================
-// INICIAR SERVIDOR
+// INICIAR
 // ============================================
 
 server.listen(SERVER_PORT, '0.0.0.0', () => {
-  console.log('Servidor iniciado en el puerto', SERVER_PORT);
+  console.log('Servidor SMARTGO iniciado en el puerto', SERVER_PORT);
+  console.log(`Dirección local: http://192.168.1.120:${SERVER_PORT}`);
   conectarArduino();
 });
