@@ -7,6 +7,25 @@ const { Server } = require('socket.io');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 
+const admin = require('firebase-admin');
+
+// ============================================
+// FIREBASE ADMIN
+// ============================================
+
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+const FieldValue = admin.firestore.FieldValue;
+
+// ============================================
+// SERVIDOR
+// ============================================
+
 const app = express();
 const server = http.createServer(app);
 
@@ -24,15 +43,12 @@ const io = new Server(server, {
 // CONFIGURACION
 // ============================================
 
-// Cambia COM3 por el puerto que tenga tu Arduino.
-// Puedes verlo en Arduino IDE > Herramientas > Puerto.
-
 const ARDUINO_PORT = process.env.ARDUINO_PORT || 'COM3';
 const BAUD_RATE = 9600;
 const SERVER_PORT = 3000;
 
 // ============================================
-// INVENTARIO
+// PRODUCTOS
 // ============================================
 
 const inventario = {
@@ -41,16 +57,65 @@ const inventario = {
   PEPSI_LATA: 0,
 };
 
-const nombres = {
-  COCA_LATA: 'Coca-Cola lata',
-  COCA_BOTELLA: 'Coca-Cola botella',
-  PEPSI_LATA: 'Pepsi lata',
+const productos = {
+  COCA_LATA: {
+    nombre: 'Coca-Cola',
+    presentacion: 'Lata',
+    precio: 8,
+  },
+  COCA_BOTELLA: {
+    nombre: 'Coca-Cola',
+    presentacion: 'Botella',
+    precio: 12,
+  },
+  PEPSI_LATA: {
+    nombre: 'Pepsi',
+    presentacion: 'Lata',
+    precio: 7,
+  },
 };
 
 const pedidosPendientes = new Set();
 
 let puertoArduino = null;
 let conectadoArduino = false;
+
+// ============================================
+// GUARDAR VENTA EN FIRESTORE
+// ============================================
+
+async function guardarVenta(producto) {
+  const datosProducto = productos[producto];
+
+  if (!datosProducto) {
+    console.error('Producto no válido para registrar venta:', producto);
+    return;
+  }
+
+  try {
+    const venta = {
+      producto: producto,
+      nombre: datosProducto.nombre,
+      presentacion: datosProducto.presentacion,
+      precio: datosProducto.precio,
+      cantidad: 1,
+      fecha: FieldValue.serverTimestamp(),
+    };
+
+    const referencia = await db.collection('ventas').add(venta);
+
+    console.log('Venta guardada correctamente:', referencia.id);
+
+    io.emit('venta:nueva', {
+      id: referencia.id,
+      ...venta,
+      fecha: new Date().toISOString(),
+    });
+
+  } catch (error) {
+    console.error('Error al guardar venta:', error.message);
+  }
+}
 
 // ============================================
 // ENVIAR DATOS A LA APLICACION
@@ -108,17 +173,13 @@ function conectarArduino() {
 
     puertoArduino.on('error', (error) => {
       conectadoArduino = false;
-
       console.error('Error serial:', error.message);
-
       enviarEstado();
     });
 
     puertoArduino.on('close', () => {
       conectadoArduino = false;
-
       console.log('Arduino desconectado');
-
       enviarEstado();
     });
 
@@ -137,7 +198,6 @@ function procesarMensajeArduino(mensaje) {
   console.log('Arduino:', mensaje);
 
   const partes = mensaje.split(',');
-
   const tipo = partes[0];
 
   if (tipo === 'READY') {
@@ -165,16 +225,10 @@ function procesarMensajeArduino(mensaje) {
     const accion = partes[1];
     const producto = partes[2];
 
-    console.log(
-      'Movimiento:',
-      accion,
-      nombres[producto] || producto
-    );
-
     io.emit('inventoryEvent', {
       accion,
       producto,
-      nombre: nombres[producto] || producto,
+      nombre: productos[producto]?.nombre || producto,
       cantidad: Number(partes[3]),
     });
   }
@@ -188,22 +242,27 @@ function procesarMensajeArduino(mensaje) {
 
     io.emit('pedido:resultado', {
       producto,
-      nombre: nombres[producto] || producto,
+      nombre: productos[producto]?.nombre || producto,
       resultado,
       mensaje:
         resultado === 'OK'
-          ? 'El motor terminó el ciclo de entrega.'
+          ? 'La bebida fue entregada correctamente.'
           : resultado === 'EMPTY'
           ? 'No hay existencias de este producto.'
           : resultado,
     });
+
+    // Registrar venta solamente si Arduino confirma OK
+    if (resultado === 'OK') {
+      guardarVenta(producto);
+    }
   }
 
   else if (tipo === 'FULL') {
     io.emit('inventoryEvent', {
       accion: 'FULL',
       producto: partes[1],
-      nombre: nombres[partes[1]] || partes[1],
+      nombre: productos[partes[1]]?.nombre || partes[1],
       mensaje: 'La banda está llena.',
     });
   }
@@ -224,6 +283,7 @@ io.on('connection', (socket) => {
   console.log('Aplicación conectada:', socket.id);
 
   socket.emit('stock', { ...inventario });
+
   socket.emit('connectionStatus', {
     conectado: conectadoArduino,
     mensaje: conectadoArduino
@@ -274,7 +334,7 @@ io.on('connection', (socket) => {
 
       socket.emit('pedido:respuesta', {
         ok: true,
-        mensaje: `Pedido enviado: ${nombres[producto]}`,
+        mensaje: `Pedido enviado: ${productos[producto].nombre}`,
       });
     });
   });
@@ -285,19 +345,45 @@ io.on('connection', (socket) => {
 });
 
 // ============================================
-// RUTA DE PRUEBA
+// RUTAS DEL SERVIDOR
 // ============================================
 
 app.get('/', (req, res) => {
   res.json({
-    servidor: 'Servidor de la máquina expendedora',
+    servidor: 'Servidor de la máquina expendedora SMARTGO',
     arduino: conectadoArduino,
     inventario,
   });
 });
 
+// Consultar inventario
 app.get('/inventario', (req, res) => {
   res.json(inventario);
+});
+
+// Consultar historial de ventas
+app.get('/ventas', async (req, res) => {
+  try {
+    const resultado = await db
+      .collection('ventas')
+      .orderBy('fecha', 'desc')
+      .get();
+
+    const ventas = resultado.docs.map((documento) => ({
+      id: documento.id,
+      ...documento.data(),
+      fecha: documento.data().fecha?.toDate().toISOString() || null,
+    }));
+
+    res.json(ventas);
+
+  } catch (error) {
+    console.error('Error al consultar ventas:', error.message);
+
+    res.status(500).json({
+      error: 'No se pudo obtener el historial de ventas.',
+    });
+  }
 });
 
 // ============================================
