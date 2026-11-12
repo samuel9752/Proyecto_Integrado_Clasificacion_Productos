@@ -24,7 +24,7 @@ import Fondo_3 from '../../../assets/pepsilata.png';
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
-const API_URL = 'http://192.168.1.120:3000';
+const API_URL = 'http://192.168.1.66:3000';
 
 const PRODUCTOS = [
   {

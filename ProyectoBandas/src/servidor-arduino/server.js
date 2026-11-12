@@ -13,6 +13,10 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const serviceAccount = require('./serviceAccountKey.json');
 
+// ============================================
+// FIREBASE
+// ============================================
+
 initializeApp({
   credential: cert(serviceAccount),
 });
@@ -36,12 +40,24 @@ const io = new Server(server, {
   },
 });
 
-const ARDUINO_PORT = process.env.ARDUINO_PORT || 'COM3';
-const BAUD_RATE = 9600;
 const SERVER_PORT = 3000;
+const BAUD_RATE = 9600;
 
 // ============================================
-// PRODUCTOS E INVENTARIO
+// CONFIGURACIÓN DE LOS DOS ARDUINOS
+// ============================================
+
+const ARDUINO1_PORT = process.env.ARDUINO1_PORT || 'COM3';
+const ARDUINO2_PORT = process.env.ARDUINO2_PORT || 'COM4';
+
+// Arduino 1 controla las entregas.
+// Cambiar a 2 si los motores de entrega están conectados
+// al segundo Arduino y este recibe los comandos DISPENSE.
+
+const PUERTO_ENTREGA = 1;
+
+// ============================================
+// PRODUCTOS
 // ============================================
 
 const inventario = {
@@ -56,11 +72,13 @@ const productos = {
     presentacion: 'Lata',
     precio: 8,
   },
+
   COCA_BOTELLA: {
     nombre: 'Coca-Cola',
     presentacion: 'Botella',
     precio: 12,
   },
+
   PEPSI_LATA: {
     nombre: 'Pepsi',
     presentacion: 'Lata',
@@ -68,11 +86,34 @@ const productos = {
   },
 };
 
-let puertoArduino = null;
-let conectadoArduino = false;
+// ============================================
+// CONEXIONES
+// ============================================
+
+let puertoArduino1 = null;
+let puertoArduino2 = null;
+
+let conectadoArduino1 = false;
+let conectadoArduino2 = false;
+
+function obtenerPuertoEntrega() {
+  return PUERTO_ENTREGA === 1
+    ? puertoArduino1
+    : puertoArduino2;
+}
+
+function estaConectadoArduino() {
+  const puerto = obtenerPuertoEntrega();
+
+  if (PUERTO_ENTREGA === 1) {
+    return conectadoArduino1 && puerto?.isOpen === true;
+  }
+
+  return conectadoArduino2 && puerto?.isOpen === true;
+}
 
 // ============================================
-// PEDIDOS Y COLA DE ENTREGA
+// PEDIDOS Y COLA
 // ============================================
 
 const pedidos = new Map();
@@ -82,11 +123,16 @@ let procesandoCola = false;
 let comandoPendiente = null;
 
 // ============================================
-// INVENTARIO EN FIRESTORE
+// INVENTARIO
 // ============================================
+
+function enviarInventario() {
+  io.emit('stock', { ...inventario });
+}
 
 async function sincronizarInventario(producto, cantidad) {
   const datos = productos[producto];
+
   if (!datos) return;
 
   try {
@@ -100,13 +146,10 @@ async function sincronizarInventario(producto, cantidad) {
       activa: true,
       actualizado: FieldValue.serverTimestamp(),
     }, { merge: true });
+
   } catch (error) {
     console.error('Error sincronizando inventario:', error.message);
   }
-}
-
-function enviarInventario() {
-  io.emit('stock', { ...inventario });
 }
 
 // ============================================
@@ -115,6 +158,7 @@ function enviarInventario() {
 
 async function guardarVenta(producto, usuario) {
   const datosProducto = productos[producto];
+
   if (!datosProducto) return;
 
   try {
@@ -125,11 +169,13 @@ async function guardarVenta(producto, usuario) {
       precio: datosProducto.precio,
       cantidad: 1,
       total: datosProducto.precio,
+
       usuario: {
         uid: usuario.uid,
         nombre: usuario.nombre,
         correo: usuario.correo,
       },
+
       fecha: FieldValue.serverTimestamp(),
     };
 
@@ -139,7 +185,13 @@ async function guardarVenta(producto, usuario) {
 
     io.emit('venta:nueva', {
       id: referencia.id,
-      ...venta,
+      producto,
+      nombre: datosProducto.nombre,
+      presentacion: datosProducto.presentacion,
+      precio: datosProducto.precio,
+      cantidad: 1,
+      total: datosProducto.precio,
+      usuario,
       fecha: new Date().toISOString(),
     });
 
@@ -149,31 +201,38 @@ async function guardarVenta(producto, usuario) {
 }
 
 // ============================================
-// ESTADO DE ARDUINO
+// ESTADO DE LOS ARDUINOS
 // ============================================
 
 function enviarEstado() {
   io.emit('connectionStatus', {
-    conectado: conectadoArduino,
-    mensaje: conectadoArduino
-      ? 'Arduino conectado'
-      : 'Arduino desconectado',
+    conectado: estaConectadoArduino(),
+
+    arduino1: conectadoArduino1,
+    arduino2: conectadoArduino2,
+
+    mensaje: estaConectadoArduino()
+      ? 'Arduino de entregas conectado'
+      : 'Arduino de entregas desconectado',
   });
 }
 
 // ============================================
-// ENVIAR UN PRODUCTO A ARDUINO Y ESPERAR
+// ENVIAR COMANDO DE ENTREGA
 // ============================================
 
 function dispensarProducto(producto) {
   return new Promise((resolve, reject) => {
-    if (!conectadoArduino || !puertoArduino?.isOpen) {
-      reject(new Error('Arduino no está conectado.'));
+
+    const puerto = obtenerPuertoEntrega();
+
+    if (!estaConectadoArduino() || !puerto) {
+      reject(new Error('Arduino de entregas no está conectado.'));
       return;
     }
 
     if (comandoPendiente) {
-      reject(new Error('Hay otro comando de Arduino en proceso.'));
+      reject(new Error('Hay otro comando en proceso.'));
       return;
     }
 
@@ -187,24 +246,36 @@ function dispensarProducto(producto) {
     comandoPendiente = pendiente;
 
     pendiente.temporizador = setTimeout(() => {
+
       if (comandoPendiente === pendiente) {
         comandoPendiente = null;
-        reject(new Error('Arduino no respondió a tiempo.'));
+
+        reject(
+          new Error('Arduino no respondió a tiempo.')
+        );
       }
+
     }, 30000);
 
-    puertoArduino.write(`DISPENSE,${producto}\n`, (error) => {
+    puerto.write(`DISPENSE,${producto}\n`, (error) => {
+
       if (error && comandoPendiente === pendiente) {
+
         clearTimeout(pendiente.temporizador);
         comandoPendiente = null;
-        reject(new Error('No se pudo enviar el comando a Arduino.'));
+
+        reject(
+          new Error('No se pudo enviar el comando a Arduino.')
+        );
       }
+
     });
+
   });
 }
 
 // ============================================
-// ACTUALIZAR PEDIDO
+// PROGRESO DEL PEDIDO
 // ============================================
 
 function emitirProgreso(pedido) {
@@ -217,61 +288,84 @@ function emitirProgreso(pedido) {
 }
 
 // ============================================
-// PROCESAR PEDIDOS DE UNO EN UNO
+// PROCESAR PEDIDOS
 // ============================================
 
 async function procesarColaPedidos() {
+
   if (procesandoCola) return;
 
   procesandoCola = true;
 
   try {
+
     while (colaPedidos.length > 0) {
+
       const pedido = colaPedidos.shift();
+
       pedido.estado = 'procesando';
       pedido.mensaje = 'Preparando tu pedido.';
+
       emitirProgreso(pedido);
 
       let detenerPedido = false;
 
       for (const item of pedido.productos) {
+
         const producto = item.producto;
 
         for (let unidad = 0; unidad < item.solicitada; unidad++) {
+
           if (inventario[producto] <= 0) {
+
             item.fallidas++;
             item.resultados.push('SIN_EXISTENCIAS');
+
             emitirProgreso(pedido);
             continue;
           }
 
           try {
-            pedido.mensaje = `Entregando ${productos[producto].nombre} ${productos[producto].presentacion}.`;
+
+            pedido.mensaje =
+              `Entregando ${productos[producto].nombre} ${productos[producto].presentacion}.`;
+
             emitirProgreso(pedido);
 
             const resultado = await dispensarProducto(producto);
 
             if (resultado === 'OK') {
+
               item.entregadas++;
               item.resultados.push('OK');
 
               await guardarVenta(producto, pedido.usuario);
+
             } else if (resultado === 'EMPTY') {
+
               item.fallidas++;
               item.resultados.push('SIN_EXISTENCIAS');
+
             } else {
+
               item.fallidas++;
               item.resultados.push(resultado);
+
             }
 
             emitirProgreso(pedido);
 
           } catch (error) {
+
             item.fallidas++;
             item.resultados.push('ERROR');
+
             pedido.mensaje = error.message;
+
             detenerPedido = true;
+
             emitirProgreso(pedido);
+
             break;
           }
         }
@@ -280,41 +374,56 @@ async function procesarColaPedidos() {
       }
 
       pedido.estado = detenerPedido ? 'error' : 'completado';
+
       pedido.mensaje = detenerPedido
         ? 'El pedido se detuvo por un problema de comunicación con Arduino.'
         : 'El pedido terminó. Revisa las unidades entregadas.';
 
       pedido.finalizado = new Date().toISOString();
+
       emitirProgreso(pedido);
     }
 
   } finally {
+
     procesandoCola = false;
 
-    // Por si llegó otro pedido mientras terminaba el anterior.
     if (colaPedidos.length > 0) {
       procesarColaPedidos();
     }
+
   }
 }
 
 // ============================================
-// INTERPRETAR MENSAJES DE ARDUINO
+// RECIBIR MENSAJES DE LOS ARDUINOS
 // ============================================
 
-function procesarMensajeArduino(mensaje) {
+function procesarMensajeArduino(mensaje, origen) {
+
   if (!mensaje) return;
 
-  console.log('Arduino:', mensaje);
+  console.log(`[${origen}] ${mensaje}`);
 
   const partes = mensaje.split(',');
   const tipo = partes[0];
 
+  // ------------------------------------------
+  // ARDUINO LISTO
+  // ------------------------------------------
+
   if (tipo === 'READY') {
-    console.log('Sistema Arduino listo');
+
+    console.log(`${origen} está listo.`);
+
   }
 
+  // ------------------------------------------
+  // INVENTARIO
+  // ------------------------------------------
+
   else if (tipo === 'STOCK') {
+
     const producto = partes[1];
     const cantidad = Number(partes[2]);
 
@@ -324,13 +433,22 @@ function procesarMensajeArduino(mensaje) {
       cantidad >= 0 &&
       cantidad <= 4
     ) {
+
       inventario[producto] = cantidad;
+
       enviarInventario();
       sincronizarInventario(producto, cantidad);
+
     }
+
   }
 
+  // ------------------------------------------
+  // EVENTOS DE INVENTARIO
+  // ------------------------------------------
+
   else if (tipo === 'EVENT') {
+
     const accion = partes[1];
     const producto = partes[2];
 
@@ -339,21 +457,36 @@ function procesarMensajeArduino(mensaje) {
       producto,
       nombre: productos[producto]?.nombre || producto,
       cantidad: Number(partes[3]),
+      arduino: origen,
     });
+
   }
 
+  // ------------------------------------------
+  // RESULTADO DE ENTREGA
+  // ------------------------------------------
+
   else if (tipo === 'RESULT' && partes[1] === 'DISPENSE') {
+
     const producto = partes[2];
     const resultado = partes[3];
 
-    // STARTED significa que comenzó la entrega.
-    // No se debe liberar la cola todavía.
+    // Solo aceptamos resultados del Arduino
+    // configurado para realizar las entregas.
+
+    if (origen !== `ARDUINO${PUERTO_ENTREGA}`) {
+      console.log('Resultado ignorado: Arduino secundario.');
+      return;
+    }
+
     if (resultado === 'STARTED') {
+
       io.emit('pedido:resultado', {
         producto,
         resultado,
         mensaje: 'Arduino comenzó la entrega.',
       });
+
       return;
     }
 
@@ -361,156 +494,253 @@ function procesarMensajeArduino(mensaje) {
       comandoPendiente &&
       comandoPendiente.producto === producto
     ) {
+
       const pendiente = comandoPendiente;
+
       clearTimeout(pendiente.temporizador);
       comandoPendiente = null;
+
       pendiente.resolve(resultado);
+
     }
 
     io.emit('pedido:resultado', {
       producto,
       nombre: productos[producto]?.nombre || producto,
       resultado,
+
       mensaje: resultado === 'OK'
         ? 'Arduino terminó el ciclo de entrega.'
         : resultado === 'EMPTY'
         ? 'No hay existencias de este producto.'
         : resultado,
     });
+
   }
 
+  // ------------------------------------------
+  // BANDA LLENA
+  // ------------------------------------------
+
   else if (tipo === 'FULL') {
+
     io.emit('inventoryEvent', {
       accion: 'FULL',
       producto: partes[1],
       nombre: productos[partes[1]]?.nombre || partes[1],
       mensaje: 'La banda está llena.',
+      arduino: origen,
     });
+
   }
 
+  // ------------------------------------------
+  // PRODUCTO DESCONOCIDO
+  // ------------------------------------------
+
   else if (tipo === 'UNKNOWN') {
+
     io.emit('inventoryEvent', {
       accion: 'UNKNOWN',
       mensaje: 'Envase no reconocido.',
+      arduino: origen,
     });
+
   }
+
 }
 
 // ============================================
-// CONEXIÓN SERIAL
+// CONECTAR UN ARDUINO
+// ============================================
+
+function conectarUnArduino(numero, puertoCOM) {
+
+  const nombre = `ARDUINO${numero}`;
+
+  const puerto = new SerialPort({
+    path: puertoCOM,
+    baudRate: BAUD_RATE,
+    autoOpen: false,
+  });
+
+  const parser = puerto.pipe(
+    new ReadlineParser({
+      delimiter: '\n',
+    })
+  );
+
+  if (numero === 1) {
+    puertoArduino1 = puerto;
+  } else {
+    puertoArduino2 = puerto;
+  }
+
+  puerto.open((error) => {
+
+    if (error) {
+
+      console.error(
+        `No se pudo conectar ${nombre} en ${puertoCOM}:`,
+        error.message
+      );
+
+      if (numero === 1) conectadoArduino1 = false;
+      else conectadoArduino2 = false;
+
+      enviarEstado();
+
+      return;
+    }
+
+    console.log(`${nombre} conectado en ${puertoCOM}`);
+
+    if (numero === 1) conectadoArduino1 = true;
+    else conectadoArduino2 = true;
+
+    enviarEstado();
+
+    // Solicitar inventario solamente al Arduino 1.
+    if (numero === 1) {
+      puerto.write('GET_STOCK\n');
+    }
+
+  });
+
+  parser.on('data', (linea) => {
+
+    procesarMensajeArduino(
+      linea.trim(),
+      nombre
+    );
+
+  });
+
+  puerto.on('error', (error) => {
+
+    console.error(`Error en ${nombre}:`, error.message);
+
+    if (numero === 1) conectadoArduino1 = false;
+    else conectadoArduino2 = false;
+
+    enviarEstado();
+
+    if (
+      numero === PUERTO_ENTREGA &&
+      comandoPendiente
+    ) {
+
+      clearTimeout(comandoPendiente.temporizador);
+
+      comandoPendiente.reject(
+        new Error('Se perdió la conexión con Arduino.')
+      );
+
+      comandoPendiente = null;
+    }
+
+  });
+
+  puerto.on('close', () => {
+
+    console.log(`${nombre} desconectado`);
+
+    if (numero === 1) conectadoArduino1 = false;
+    else conectadoArduino2 = false;
+
+    enviarEstado();
+
+  });
+
+}
+
+// ============================================
+// CONECTAR LOS DOS ARDUINOS
 // ============================================
 
 function conectarArduino() {
-  try {
-    puertoArduino = new SerialPort({
-      path: ARDUINO_PORT,
-      baudRate: BAUD_RATE,
-      autoOpen: false,
-    });
 
-    const parser = puertoArduino.pipe(
-      new ReadlineParser({ delimiter: '\n' })
-    );
+  conectarUnArduino(1, ARDUINO1_PORT);
 
-    puertoArduino.open((error) => {
-      if (error) {
-        conectadoArduino = false;
-        console.error('No se pudo abrir Arduino:', error.message);
-        enviarEstado();
-        return;
-      }
+  conectarUnArduino(2, ARDUINO2_PORT);
 
-      conectadoArduino = true;
-      console.log('Arduino conectado en', ARDUINO_PORT);
-
-      enviarEstado();
-      puertoArduino.write('GET_STOCK\n');
-    });
-
-    parser.on('data', (linea) => {
-      procesarMensajeArduino(linea.trim());
-    });
-
-    puertoArduino.on('error', (error) => {
-      conectadoArduino = false;
-      console.error('Error serial:', error.message);
-      enviarEstado();
-
-      if (comandoPendiente) {
-        clearTimeout(comandoPendiente.temporizador);
-        comandoPendiente.reject(new Error('Se perdió la conexión con Arduino.'));
-        comandoPendiente = null;
-      }
-    });
-
-    puertoArduino.on('close', () => {
-      conectadoArduino = false;
-      console.log('Arduino desconectado');
-      enviarEstado();
-    });
-
-  } catch (error) {
-    console.error('Error de conexión:', error.message);
-  }
 }
 
 // ============================================
-// CREAR PEDIDO DESDE LA APLICACIÓN
+// CREAR PEDIDO DESDE LA APP
 // ============================================
 
 app.post('/pedido', (req, res) => {
+
   const items = req.body?.items;
   const usuarioRecibido = req.body?.usuario;
 
   if (!Array.isArray(items) || items.length === 0) {
+
     return res.status(400).json({
       ok: false,
       mensaje: 'El carrito está vacío.',
     });
+
   }
 
   if (
     !usuarioRecibido?.uid ||
     !usuarioRecibido?.correo
   ) {
+
     return res.status(400).json({
       ok: false,
       mensaje: 'No se recibió la información del usuario.',
     });
+
   }
 
-  if (!conectadoArduino || !puertoArduino?.isOpen) {
+  if (!estaConectadoArduino()) {
+
     return res.status(503).json({
       ok: false,
-      mensaje: 'Arduino no está conectado.',
+      mensaje: 'Arduino de entregas no está conectado.',
     });
+
   }
 
   const productosPedido = [];
 
   for (const item of items) {
+
     const producto = item.producto;
     const cantidad = Number(item.cantidad);
 
     if (!Object.prototype.hasOwnProperty.call(productos, producto)) {
+
       return res.status(400).json({
         ok: false,
         mensaje: `Producto no válido: ${producto}`,
       });
+
     }
 
-    if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 4) {
+    if (
+      !Number.isInteger(cantidad) ||
+      cantidad < 1 ||
+      cantidad > 4
+    ) {
+
       return res.status(400).json({
         ok: false,
         mensaje: 'Cada producto debe tener entre 1 y 4 unidades.',
       });
+
     }
 
     if (cantidad > inventario[producto]) {
+
       return res.status(400).json({
         ok: false,
         mensaje: `No hay suficientes existencias de ${productos[producto].nombre} ${productos[producto].presentacion}.`,
       });
+
     }
 
     productosPedido.push({
@@ -520,11 +750,13 @@ app.post('/pedido', (req, res) => {
       fallidas: 0,
       resultados: [],
     });
+
   }
 
   const usuario = {
     uid: String(usuarioRecibido.uid),
     correo: String(usuarioRecibido.correo),
+
     nombre: String(
       usuarioRecibido.nombre ||
       usuarioRecibido.correo.split('@')[0]
@@ -550,20 +782,24 @@ app.post('/pedido', (req, res) => {
   });
 
   procesarColaPedidos();
+
 });
 
 // ============================================
-// CONSULTAR ESTADO DE UN PEDIDO
+// CONSULTAR PEDIDO
 // ============================================
 
 app.get('/pedido/:id', (req, res) => {
+
   const pedido = pedidos.get(req.params.id);
 
   if (!pedido) {
+
     return res.status(404).json({
       ok: false,
       mensaje: 'No se encontró el pedido.',
     });
+
   }
 
   res.json({
@@ -575,25 +811,43 @@ app.get('/pedido/:id', (req, res) => {
     creado: pedido.creado,
     finalizado: pedido.finalizado || null,
   });
+
 });
 
 // ============================================
-// RUTAS GENERALES
+// ESTADO GENERAL
 // ============================================
 
 app.get('/', (req, res) => {
+
   res.json({
     servidor: 'SMARTGO',
-    arduino: conectadoArduino,
+
+    arduino: estaConectadoArduino(),
+
+    arduino1: conectadoArduino1,
+    arduino2: conectadoArduino2,
+
     inventario,
   });
+
 });
 
+// ============================================
+// INVENTARIO
+// ============================================
+
 app.get('/inventario', (req, res) => {
+
   res.json({
-    conectado: conectadoArduino,
+    conectado: estaConectadoArduino(),
+
+    arduino1: conectadoArduino1,
+    arduino2: conectadoArduino2,
+
     productos: inventario,
   });
+
 });
 
 // ============================================
@@ -601,13 +855,16 @@ app.get('/inventario', (req, res) => {
 // ============================================
 
 app.get('/ventas', async (req, res) => {
+
   try {
+
     const resultado = await db
       .collection('ventas')
       .orderBy('fecha', 'desc')
       .get();
 
     const ventas = resultado.docs.map((documento) => {
+
       const datos = documento.data();
 
       return {
@@ -619,29 +876,71 @@ app.get('/ventas', async (req, res) => {
         cantidad: datos.cantidad,
         total: datos.total,
         usuario: datos.usuario || null,
+
         fecha: datos.fecha
           ? datos.fecha.toDate().toISOString()
           : null,
       };
+
     });
 
     res.json(ventas);
 
   } catch (error) {
+
     console.error('Error al consultar ventas:', error.message);
 
     res.status(500).json({
       error: 'No se pudo obtener el historial de ventas.',
     });
+
   }
+
 });
 
 // ============================================
-// INICIAR
+// SOCKET.IO
+// ============================================
+
+io.on('connection', (socket) => {
+
+  console.log('Aplicación conectada:', socket.id);
+
+  socket.emit('stock', { ...inventario });
+
+  socket.emit('connectionStatus', {
+    conectado: estaConectadoArduino(),
+    arduino1: conectadoArduino1,
+    arduino2: conectadoArduino2,
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Aplicación desconectada:', socket.id);
+  });
+
+});
+
+// ============================================
+// INICIAR SERVIDOR
 // ============================================
 
 server.listen(SERVER_PORT, '0.0.0.0', () => {
-  console.log('Servidor SMARTGO iniciado en el puerto', SERVER_PORT);
-  console.log(`Dirección local: http://192.168.1.120:${SERVER_PORT}`);
+
+  console.log('');
+  console.log('====================================');
+  console.log('       SMARTGO - SERVIDOR');
+  console.log('====================================');
+
+  console.log(`Servidor: http://localhost:${SERVER_PORT}`);
+
+  console.log(`Arduino 1: ${ARDUINO1_PORT}`);
+  console.log(`Arduino 2: ${ARDUINO2_PORT}`);
+
+  console.log(`Baudios: ${BAUD_RATE}`);
+
+  console.log('====================================');
+  console.log('');
+
   conectarArduino();
+
 });

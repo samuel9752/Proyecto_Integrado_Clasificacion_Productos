@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
-const API_URL = 'http://192.168.1.120:3000/ventas';
+const API_URL = 'http://192.168.1.66:3000/ventas';
 
 export default function HistorialVentasScreen() {
   const [ventas, setVentas] = useState([]);
