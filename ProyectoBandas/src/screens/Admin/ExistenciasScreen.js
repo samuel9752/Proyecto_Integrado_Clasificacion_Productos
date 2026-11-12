@@ -589,12 +589,14 @@ export default function ExistenciasScreen() {
 
 }
 
-// ESTILOS
+
 const styles = StyleSheet.create({
+
+  // PANTALLA PRINCIPAL
 
   container: {
     flex: 1,
-    backgroundColor: '#F3F5F9',
+    backgroundColor: '#06152D',
   },
 
   scrollContent: {
@@ -602,41 +604,51 @@ const styles = StyleSheet.create({
     paddingBottom: 35,
   },
 
+  // ENCABEZADO
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 25,
     marginTop: 10,
+    backgroundColor: '#0B2142',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 4,
   },
 
   brand: {
-    color: '#D71930',
+    color: '#FF303B',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 2,
     marginBottom: 7,
   },
 
   title: {
-    color: '#172033',
-    fontSize: 25,
-    fontWeight: '800',
+    color: '#FFFFFF',
+    fontSize: 23,
+    fontWeight: '900',
   },
 
   subtitle: {
-    color: '#7B8494',
-    fontSize: 13,
-    marginTop: 5,
+    color: '#A9C5E8',
+    fontSize: 12,
+    marginTop: 6,
   },
 
   headerIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#172033',
+    backgroundColor: '#0756A5',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#168BDB',
   },
 
   headerIconText: {
@@ -645,19 +657,19 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
 
+  // CONEXIÓN CON LA MÁQUINA
+
   connectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#0B2142',
+    borderRadius: 15,
     padding: 17,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 25,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 3,
   },
 
   connectionLeft: {
@@ -674,15 +686,15 @@ const styles = StyleSheet.create({
   },
 
   connectionTitle: {
-    color: '#172033',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: 'bold',
     fontSize: 14,
   },
 
   connectionMessage: {
-    color: '#8992A1',
-    fontSize: 12,
-    marginTop: 4,
+    color: '#A9BBD2',
+    fontSize: 11,
+    marginTop: 5,
   },
 
   connectionStatus: {
@@ -691,12 +703,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
+  // TÍTULOS DE SECCIÓN
+
   sectionTitle: {
-    color: '#172033',
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     marginBottom: 15,
   },
+
+  // RESUMEN GENERAL
 
   summaryContainer: {
     flexDirection: 'row',
@@ -705,40 +721,40 @@ const styles = StyleSheet.create({
 
   summaryCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#0B2142',
+    borderRadius: 15,
     padding: 16,
     marginRight: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 3,
   },
 
   summaryLabel: {
-    color: '#7B8494',
+    color: '#A9BBD2',
     fontSize: 11,
     fontWeight: '600',
   },
 
   summaryNumber: {
-    color: '#172033',
+    color: '#FFFFFF',
     fontSize: 30,
     fontWeight: '900',
     marginTop: 8,
   },
 
   summaryTotal: {
-    color: '#A0A8B5',
+    color: '#6FA9D8',
     fontSize: 17,
   },
 
   summaryDescription: {
-    color: '#A0A8B5',
+    color: '#829DBB',
     fontSize: 10,
-    marginTop: 4,
+    marginTop: 5,
   },
+
+  // ENCABEZADO DEL INVENTARIO
 
   sectionHeader: {
     flexDirection: 'row',
@@ -748,20 +764,20 @@ const styles = StyleSheet.create({
   },
 
   capacityText: {
-    color: '#8992A1',
+    color: '#7FAAD0',
     fontSize: 10,
   },
 
+  // TARJETAS DE PRODUCTOS
+
   productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: '#0B2142',
+    borderRadius: 17,
     padding: 17,
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 4,
   },
 
   productHeader: {
@@ -771,9 +787,9 @@ const styles = StyleSheet.create({
   },
 
   productIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 13,
+    width: 45,
+    height: 45,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -790,29 +806,33 @@ const styles = StyleSheet.create({
   },
 
   productName: {
-    color: '#172033',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
   },
 
   productPresentation: {
-    color: '#8992A1',
+    color: '#A9BBD2',
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 5,
   },
 
   bandBadge: {
-    backgroundColor: '#F0F2F6',
+    backgroundColor: '#17375D',
     paddingHorizontal: 9,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#24517F',
   },
 
   bandText: {
-    color: '#687386',
+    color: '#BBD5EF',
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '900',
   },
+
+  // CANTIDAD DE EXISTENCIAS
 
   stockRow: {
     flexDirection: 'row',
@@ -822,24 +842,26 @@ const styles = StyleSheet.create({
   },
 
   stockLabel: {
-    color: '#7B8494',
+    color: '#A9BBD2',
     fontSize: 12,
   },
 
   stockNumber: {
-    color: '#172033',
-    fontSize: 19,
+    color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '900',
   },
 
   stockTotal: {
-    color: '#A0A8B5',
+    color: '#7FAAD0',
     fontSize: 13,
   },
 
+  // BARRA DE PROGRESO
+
   progressBackground: {
-    height: 8,
-    backgroundColor: '#EDF0F4',
+    height: 9,
+    backgroundColor: '#1A3455',
     borderRadius: 10,
     overflow: 'hidden',
   },
@@ -849,111 +871,131 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
+  // ESTADO DE LA BANDA
+
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 15,
+    marginTop: 13,
+    marginBottom: 16,
   },
 
   statusDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 5,
-    marginRight: 7,
+    marginRight: 8,
   },
 
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
+  // BOTÓN DE ENTREGA
+
   dispenseButton: {
-    backgroundColor: '#172033',
+    backgroundColor: '#0756A5',
     paddingVertical: 14,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 46,
+    borderWidth: 1,
+    borderColor: '#168BDB',
+    elevation: 2,
   },
 
   disabledButton: {
-    backgroundColor: '#AAB1BC',
+    backgroundColor: '#263B55',
+    borderColor: '#40536A',
   },
 
   dispenseButtonText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 
+  // ACTIVIDAD RECIENTE
+
   activityCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B2142',
     borderRadius: 15,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 3,
   },
 
   activityIcon: {
-    width: 40,
-    height: 40,
+    width: 43,
+    height: 43,
     borderRadius: 12,
-    backgroundColor: '#EEF3FA',
+    backgroundColor: '#17375D',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   activityIconText: {
-    color: '#1769C2',
+    color: '#36A9FF',
     fontSize: 23,
-    fontWeight: '700',
+    fontWeight: '900',
   },
 
   activityInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 13,
   },
 
   activityTitle: {
-    color: '#172033',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
 
   activityMessage: {
-    color: '#8992A1',
+    color: '#A9BBD2',
     fontSize: 11,
-    marginTop: 4,
+    marginTop: 5,
   },
 
+  // INFORMACIÓN DEL SISTEMA
+
   infoCard: {
-    backgroundColor: '#E9EEF6',
+    backgroundColor: '#102D55',
     borderRadius: 14,
-    padding: 16,
+    padding: 17,
     marginBottom: 25,
+    borderWidth: 1,
+    borderColor: '#1B4D80',
   },
 
   infoTitle: {
-    color: '#26364F',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
-    marginBottom: 7,
+    marginBottom: 8,
   },
 
   infoText: {
-    color: '#66758B',
+    color: '#A9C5E8',
     fontSize: 11,
-    lineHeight: 18,
+    lineHeight: 19,
   },
 
+  // PIE DE PÁGINA
+
   footer: {
-    color: '#A0A8B5',
+    color: '#6F8EAF',
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
     letterSpacing: 1,
+    marginTop: 5,
   },
 
 });

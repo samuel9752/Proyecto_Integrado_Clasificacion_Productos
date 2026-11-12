@@ -116,271 +116,90 @@ export default function DetectorScreen() {
       ]
     );
   };
-
-  const alertaActiva = llamaDetectada && !ignorada;
-
-  return (
-
-    <SafeAreaView style={styles.container}>
-
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#171B24"
-      />
-
-      {/* ENCABEZADO */}
-      <View style={styles.header}>
-
-        <Text style={styles.headerTitle}>
-          SMART VENDING SYSTEM
-        </Text>
-
-        <Text style={styles.headerSubtitle}>
-          Seguridad y monitoreo
-        </Text>
-
-      </View>
-
-      {/* CONTENIDO DESLIZABLE */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-
-        <Text style={styles.title}>
-          Detector de seguridad
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Monitoreo del sensor de llama
-        </Text>
-
-        {cargando ? (
-
-          <ActivityIndicator
-            size="large"
-            color="#D9272E"
-            style={{ marginTop: 60 }}
-          />
-
-        ) : (
-
-          <>
-
-            {/* TARJETA DE ESTADO */}
-            <View style={[
-              styles.statusCard,
-              alertaActiva ? styles.dangerCard : styles.normalCard
-            ]}>
-
-              <View style={[
-                styles.iconCircle,
-                alertaActiva
-                  ? styles.dangerCircle
-                  : styles.normalCircle
-              ]}>
-
-                <MaterialIcons
-                  name={alertaActiva ? 'local-fire-department' : 'verified-user'}
-                  size={65}
-                  color={alertaActiva ? '#D9272E' : '#219653'}
-                />
-
-              </View>
-
-              <Text style={[
-                styles.statusTitle,
-                { color: alertaActiva ? '#D9272E' : '#219653' }
-              ]}>
-                {alertaActiva
-                  ? '¡ALERTA DE LLAMA!'
-                  : maquinaEncendida
-                    ? 'Sistema seguro'
-                    : 'Máquina apagada'}
-              </Text>
-
-              <Text style={styles.description}>
-                {alertaActiva
-                  ? 'El sensor ha detectado una llama. Se recomienda detener la máquina y revisar la situación.'
-                  : maquinaEncendida
-                    ? 'No se detecta presencia de llama. El sistema se encuentra en monitoreo.'
-                    : 'La máquina figura como apagada.'}
-              </Text>
-
-              <View style={styles.indicator}>
-
-                <View style={[
-                  styles.dot,
-                  { backgroundColor: alertaActiva ? '#D9272E' : '#219653' }
-                ]} />
-
-                <Text style={styles.indicatorText}>
-                  {alertaActiva ? 'ALERTA ACTIVA' : 'MONITOREO ACTIVO'}
-                </Text>
-
-              </View>
-
-            </View>
-
-            {/* TARJETA DEL SENSOR */}
-            <View style={styles.sensorCard}>
-
-              <MaterialIcons
-                name="sensors"
-                size={35}
-                color="#D9272E"
-              />
-
-              <View style={{ flex: 1, marginLeft: 15 }}>
-
-                <Text style={styles.sensorTitle}>
-                  Sensor de llama
-                </Text>
-
-                <Text style={[
-                  styles.sensorStatus,
-                  { color: llamaDetectada ? '#D9272E' : '#219653' }
-                ]}>
-                  {llamaDetectada ? 'DETECCIÓN ACTIVA' : 'SIN DETECCIÓN'}
-                </Text>
-
-              </View>
-
-            </View>
-
-            {/* BOTONES DE ALERTA */}
-            {alertaActiva && (
-
-              <View style={styles.buttons}>
-
-                <TouchableOpacity
-                  style={styles.ignoreButton}
-                  onPress={ignorarAlerta}
-                >
-
-                  <MaterialIcons
-                    name="notifications-off"
-                    size={22}
-                    color="#333"
-                  />
-
-                  <Text style={styles.ignoreText}>
-                    Ignorar alerta
-                  </Text>
-
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.shutdownButton}
-                  onPress={apagarMaquina}
-                >
-
-                  <MaterialIcons
-                    name="power-settings-new"
-                    size={23}
-                    color="#fff"
-                  />
-
-                  <Text style={styles.shutdownText}>
-                    Apagar máquina
-                  </Text>
-
-                </TouchableOpacity>
-
-              </View>
-
-            )}
-
-          </>
-
-        )}
-
-      </ScrollView>
-
-      {/* PIE DE PÁGINA */}
-      <View style={styles.footer}>
-
-        <Text style={styles.footerText}>
-          SMART VENDING SYSTEM
-        </Text>
-
-        <Text style={styles.footerSubtitle}>
-          Sistema inteligente de seguridad
-        </Text>
-
-      </View>
-
-    </SafeAreaView>
-  );
 }
-
 const styles = StyleSheet.create({
+
+  // PANTALLA PRINCIPAL
 
   container: {
     flex: 1,
-    backgroundColor: '#F3F5F8'
+    backgroundColor: '#06152D'
   },
 
+  // ENCABEZADO
+
   header: {
-    backgroundColor: '#171B24',
-    padding: 24
+    backgroundColor: '#0B2142',
+    padding: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: '#087BCE'
   },
 
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 19,
-    fontWeight: 'bold',
-    letterSpacing: 1
+    fontWeight: '900',
+    letterSpacing: 1.5
   },
 
   headerSubtitle: {
-    color: '#B8BEC9',
-    marginTop: 5,
-    fontSize: 13
+    color: '#A9C5E8',
+    marginTop: 6,
+    fontSize: 12
   },
 
   // CONTENEDOR DESLIZABLE
+
   content: {
     flex: 1
   },
 
   contentContainer: {
     padding: 20,
-    flexGrow: 1
+    flexGrow: 1,
+    paddingBottom: 30
   },
 
+  // TÍTULOS
+
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#171B24',
+    fontSize: 25,
+    fontWeight: '900',
+    color: '#FFFFFF',
     marginTop: 15
   },
 
   subtitle: {
-    fontSize: 14,
-    color: '#777F8C',
-    marginTop: 6,
+    fontSize: 13,
+    color: '#A9BBD2',
+    marginTop: 7,
     marginBottom: 25
   },
 
+  // TARJETA PRINCIPAL DE ESTADO
+
   statusCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B2142',
     borderRadius: 18,
     padding: 25,
     alignItems: 'center',
-    elevation: 3
+    borderWidth: 1,
+    elevation: 5
   },
 
   normalCard: {
+    borderColor: '#219653',
     borderTopWidth: 5,
     borderTopColor: '#219653'
   },
 
   dangerCard: {
+    borderColor: '#D9272E',
     borderTopWidth: 5,
     borderTopColor: '#D9272E'
   },
+
+  // ICONO DE SEGURIDAD
 
   iconCircle: {
     width: 115,
@@ -392,35 +211,45 @@ const styles = StyleSheet.create({
   },
 
   normalCircle: {
-    backgroundColor: '#E5F7EC'
+    backgroundColor: '#123E3A',
+    borderWidth: 1,
+    borderColor: '#219653'
   },
 
   dangerCircle: {
-    backgroundColor: '#FDE8E8'
+    backgroundColor: '#451D2B',
+    borderWidth: 1,
+    borderColor: '#D9272E'
   },
+
+  // ESTADO DEL SISTEMA
 
   statusTitle: {
     fontSize: 23,
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center'
   },
 
   description: {
-    fontSize: 14,
-    color: '#777F8C',
+    fontSize: 13,
+    color: '#A9BBD2',
     textAlign: 'center',
     lineHeight: 22,
-    marginTop: 12
+    marginTop: 13
   },
+
+  // INDICADOR DE ALERTA
 
   indicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F5F8',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    backgroundColor: '#102D55',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     borderRadius: 20,
-    marginTop: 22
+    marginTop: 22,
+    borderWidth: 1,
+    borderColor: '#1B4D80'
   },
 
   dot: {
@@ -431,32 +260,39 @@ const styles = StyleSheet.create({
   },
 
   indicatorText: {
-    color: '#555D69',
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: 'bold'
+    fontWeight: '900',
+    letterSpacing: 0.7
   },
 
+  // TARJETA DEL SENSOR
+
   sensorCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B2142',
     borderRadius: 15,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 20,
-    elevation: 2
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 4
   },
 
   sensorTitle: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#171B24'
+    fontWeight: '900',
+    color: '#FFFFFF'
   },
 
   sensorStatus: {
     fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 5
+    fontWeight: '900',
+    marginTop: 6
   },
+
+  // BOTONES DE ALERTA
 
   buttons: {
     marginTop: 20,
@@ -464,9 +300,9 @@ const styles = StyleSheet.create({
   },
 
   ignoreButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#102D55',
     borderWidth: 1,
-    borderColor: '#D9DDE4',
+    borderColor: '#276092',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
@@ -475,44 +311,52 @@ const styles = StyleSheet.create({
   },
 
   ignoreText: {
-    color: '#333333',
-    fontWeight: 'bold',
-    marginLeft: 9
-  },
-
-  shutdownButton: {
-    backgroundColor: '#D9272E',
-    padding: 17,
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-
-  shutdownText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     marginLeft: 9
   },
 
+  shutdownButton: {
+    backgroundColor: '#C51F2B',
+    padding: 17,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F04450',
+    elevation: 4
+  },
+
+  shutdownText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    marginLeft: 9
+  },
+
+  // PIE DE PÁGINA
+
   footer: {
+    backgroundColor: '#0B2142',
     padding: 18,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E1E4E9'
+    borderTopColor: '#174477'
   },
 
   footerText: {
-    color: '#171B24',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '900',
     letterSpacing: 2,
     fontSize: 12
   },
 
   footerSubtitle: {
-    color: '#9299A5',
+    color: '#8FAAC9',
     fontSize: 11,
     marginTop: 5
   }
 
 });
+
+  

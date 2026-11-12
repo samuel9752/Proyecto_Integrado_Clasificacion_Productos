@@ -437,13 +437,14 @@ export default function AdminProfileScreen({ navigation }) {
 
 }
 
-// ESTILOS
 
 const styles = StyleSheet.create({
 
+  // PANTALLA PRINCIPAL
+
   screen: {
     flex: 1,
-    backgroundColor: '#EEF0F3'
+    backgroundColor: '#06152D'
   },
 
   container: {
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
 
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#EEF0F3',
+    backgroundColor: '#06152D',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12
@@ -463,17 +464,21 @@ const styles = StyleSheet.create({
 
   loadingText: {
     fontSize: 14,
-    color: '#596579'
+    color: '#A9C5E8'
   },
 
   // ENCABEZADO
 
   header: {
-    backgroundColor: '#171B24',
-    borderRadius: 16,
+    backgroundColor: '#0B2142',
+    borderRadius: 17,
     padding: 22,
     marginBottom: 20,
-    elevation: 4
+    borderWidth: 1,
+    borderColor: '#174477',
+    borderTopWidth: 3,
+    borderTopColor: '#087BCE',
+    elevation: 5
   },
 
   headerTop: {
@@ -483,33 +488,37 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    fontSize: 11,
-    color: '#AEB7C4',
-    fontWeight: 'bold',
-    letterSpacing: 1.2,
-    marginBottom: 7
+    fontSize: 10,
+    color: '#36A9FF',
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: 8
   },
 
   headerTitle: {
-    fontSize: 22,
+    fontSize: 21,
     color: '#FFFFFF',
-    fontWeight: 'bold'
+    fontWeight: '900'
   },
 
   headerIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 10,
-    backgroundColor: '#292D33',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#0756A5',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#168BDB'
   },
 
   headerDivider: {
     height: 1,
-    backgroundColor: '#424956',
+    backgroundColor: '#24466D',
     marginVertical: 20
   },
+
+  // INFORMACIÓN DEL ADMINISTRADOR
 
   profileHeader: {
     flexDirection: 'row',
@@ -517,12 +526,14 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 65,
-    height: 65,
-    borderRadius: 12,
+    width: 68,
+    height: 68,
+    borderRadius: 15,
     backgroundColor: '#0756A5',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#168BDB'
   },
 
   profileHeaderInfo: {
@@ -531,80 +542,88 @@ const styles = StyleSheet.create({
   },
 
   profileTitle: {
-    fontSize: 19,
+    fontSize: 20,
     color: '#FFFFFF',
-    fontWeight: 'bold'
+    fontWeight: '900'
   },
 
   profileSubtitle: {
-    fontSize: 12,
-    color: '#C1C8D2',
-    marginTop: 5
+    fontSize: 11,
+    color: '#A9C5E8',
+    marginTop: 6
   },
 
   // TARJETAS
 
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
+    backgroundColor: '#0B2142',
+    borderRadius: 15,
     padding: 20,
     marginBottom: 17,
-    elevation: 2
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 4
   },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
     flexWrap: 'wrap',
     gap: 8
   },
 
   cardTitle: {
     fontSize: 16,
-    color: '#252B35',
-    fontWeight: 'bold'
+    color: '#FFFFFF',
+    fontWeight: '900'
   },
+
+  // ESTADO DE CUENTA
 
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5EC',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20
+    backgroundColor: '#123E3A',
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#219653'
   },
 
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: 5,
-    backgroundColor: '#299D58',
-    marginRight: 6
+    backgroundColor: '#36D47A',
+    marginRight: 7
   },
 
   statusText: {
     fontSize: 10,
-    color: '#26834B',
-    fontWeight: 'bold'
+    color: '#66E09A',
+    fontWeight: '900'
   },
 
-  // INFORMACIÓN
+  // INFORMACIÓN DE LA CUENTA
 
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16
+    paddingVertical: 17
   },
 
   infoIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 10,
-    backgroundColor: '#F0F2F5',
+    width: 45,
+    height: 45,
+    borderRadius: 12,
+    backgroundColor: '#102D55',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1B4D80'
   },
 
   infoContent: {
@@ -614,40 +633,44 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 10,
-    color: '#7B8491',
-    fontWeight: 'bold',
-    letterSpacing: 0.6,
-    marginBottom: 7
+    color: '#7FAAD0',
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginBottom: 8
   },
 
   value: {
-    fontSize: 14,
-    color: '#252B35',
+    fontSize: 13,
+    color: '#FFFFFF',
     fontWeight: '600'
   },
 
   uid: {
     fontSize: 10,
-    color: '#596579'
+    color: '#A9C5E8'
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#E8EBEF'
+    backgroundColor: '#1B385D'
   },
+
+  // ROL ADMINISTRADOR
 
   roleBadge: {
     alignSelf: 'flex-start',
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#E9F0FA'
+    borderRadius: 7,
+    backgroundColor: '#102F57',
+    borderWidth: 1,
+    borderColor: '#087BCE'
   },
 
   roleText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0756A5'
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#36A9FF'
   },
 
   // PANEL ADMINISTRATIVO
@@ -661,7 +684,7 @@ const styles = StyleSheet.create({
 
   description: {
     fontSize: 12,
-    color: '#7B8491',
+    color: '#A9BBD2',
     lineHeight: 19,
     marginBottom: 12
   },
@@ -676,7 +699,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 10,
-    backgroundColor: '#F0F2F5',
+    backgroundColor: '#102D55',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -688,13 +711,13 @@ const styles = StyleSheet.create({
 
   adminTitle: {
     fontSize: 14,
-    color: '#252B35',
+    color: '#FFFFFF',
     fontWeight: 'bold'
   },
 
   adminDescription: {
     fontSize: 11,
-    color: '#7B8491',
+    color: '#A9BBD2',
     marginTop: 5
   },
 
@@ -702,7 +725,7 @@ const styles = StyleSheet.create({
 
   brandDescription: {
     fontSize: 12,
-    color: '#7B8491',
+    color: '#A9BBD2',
     marginTop: 6,
     marginBottom: 17
   },
@@ -714,77 +737,88 @@ const styles = StyleSheet.create({
 
   cocaCard: {
     flex: 1,
-    backgroundColor: '#FCEBEC',
-    borderRadius: 9,
+    backgroundColor: '#351C30',
+    borderRadius: 10,
     padding: 15,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#A92838'
   },
 
   cocaText: {
     fontSize: 15,
-    color: '#C51F2B',
-    fontWeight: 'bold'
+    color: '#FF3545',
+    fontWeight: '900'
   },
 
   pepsiCard: {
     flex: 1,
-    backgroundColor: '#E9F0FA',
-    borderRadius: 9,
+    backgroundColor: '#102D55',
+    borderRadius: 10,
     padding: 15,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#087BCE'
   },
 
   pepsiText: {
     fontSize: 16,
-    color: '#0756A5',
-    fontWeight: 'bold'
+    color: '#36A9FF',
+    fontWeight: '900'
   },
 
   // CERRAR SESIÓN
 
   logoutButton: {
     backgroundColor: '#C51F2B',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 13,
+    padding: 17,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 20,
-    elevation: 2
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: '#F04450',
+    elevation: 4
   },
 
   logoutText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: 'bold'
+    fontWeight: '900'
   },
 
   // PIE DE PÁGINA
 
   footer: {
     alignItems: 'center',
-    marginTop: 8
+    marginTop: 8,
+    padding: 15,
+    backgroundColor: '#0B2142',
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#174477'
   },
 
   footerText: {
-    fontSize: 11,
-    color: '#596579',
-    fontWeight: 'bold',
-    letterSpacing: 1
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: 1.5
   },
 
   footerSubtext: {
     fontSize: 10,
-    color: '#9299A3',
-    marginTop: 5
+    color: '#8FAAC9',
+    marginTop: 6
   },
 
   footerLines: {
     flexDirection: 'row',
-    width: 65,
+    width: 70,
     height: 4,
     borderRadius: 5,
     overflow: 'hidden',
@@ -798,8 +832,7 @@ const styles = StyleSheet.create({
 
   blueLine: {
     flex: 1,
-    backgroundColor: '#0756A5'
+    backgroundColor: '#087BCE'
   }
 
 });
-
