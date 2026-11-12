@@ -10,6 +10,7 @@ import {
   Easing,
   Image,
   ImageBackground,
+  SafeAreaView,
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -46,246 +47,250 @@ export default function UserScreen() {
     >
       <View style={styles.overlay} />
 
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ENCABEZADO */}
-
-        <Animated.View
-          style={[
-            styles.welcomeContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.brandRow}>
-            <Image source={MiLogo} style={styles.logo} />
+          {/* ENCABEZADO */}
 
-            <View>
-              <Text style={styles.brandName}>SMARTGO</Text>
-              
-            </View>
-          </View>
+          <Animated.View
+            style={[
+              styles.welcomeContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.brandRow}>
+              <Image source={MiLogo} style={styles.logo} />
 
-          <View style={styles.welcomeIcon}>
-            <MaterialIcons
-              name="waving-hand"
-              size={32}
-              color="#C51F2B"
-            />
-          </View>
-
-          <Text style={styles.welcomeTitle}>
-            ¡Bienvenido!
-          </Text>
-
-          <Text style={styles.welcomeSubtitle}>
-            Disfruta de tus bebidas favoritas
-          </Text>
-
-          <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>
-              Panel de usuario
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* TARJETAS DE RESUMEN */}
-
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryIconBlue}>
-              <MaterialIcons
-                name="shopping-cart"
-                size={25}
-                color="#14569A"
-              />
+              <View>
+                <Text style={styles.brandName}>SMARTGO</Text>
+                <Text style={styles.brandCaption}>
+                  VENDING SYSTEM
+                </Text>
+              </View>
             </View>
 
-            <Text style={styles.summaryNumber}>0</Text>
-
-            <Text style={styles.summaryLabel}>
-              Productos en carrito
-            </Text>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryIconRed}>
+            <View style={styles.welcomeIcon}>
               <MaterialIcons
-                name="receipt-long"
-                size={25}
+                name="waving-hand"
+                size={32}
                 color="#C51F2B"
               />
             </View>
 
-            <Text style={styles.summaryNumber}>0</Text>
-
-            <Text style={styles.summaryLabel}>
-              Compras realizadas
+            <Text style={styles.welcomeTitle}>
+              ¡Bienvenido!
             </Text>
+
+            <Text style={styles.welcomeSubtitle}>
+              Disfruta de tus bebidas favoritas
+            </Text>
+
+            <View style={styles.statusBadge}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>
+                Panel de usuario
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* TARJETAS DE RESUMEN */}
+
+          <View style={styles.summaryContainer}>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryIconBlue}>
+                <MaterialIcons
+                  name="shopping-cart"
+                  size={25}
+                  color="#14569A"
+                />
+              </View>
+
+              <Text style={styles.summaryNumber}>0</Text>
+
+              <Text style={styles.summaryLabel}>
+                Productos en carrito
+              </Text>
+            </View>
+
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryIconRed}>
+                <MaterialIcons
+                  name="receipt-long"
+                  size={25}
+                  color="#C51F2B"
+                />
+              </View>
+
+              <Text style={styles.summaryNumber}>0</Text>
+
+              <Text style={styles.summaryLabel}>
+                Compras realizadas
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/* MI CARRITO */}
+          {/* MI CARRITO */}
 
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconRed}>
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconRed}>
+                <MaterialIcons
+                  name="shopping-cart"
+                  size={23}
+                  color="#C51F2B"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>
+                  Mi carrito de compras
+                </Text>
+
+                <Text style={styles.cardSubtitle}>
+                  Tus productos seleccionados
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.cartPreview}>
+              <View style={styles.cartIconContainer}>
+                <MaterialIcons
+                  name="shopping-basket"
+                  size={34}
+                  color="#14569A"
+                />
+              </View>
+
+              <View style={styles.cartInfo}>
+                <Text style={styles.cartTitle}>
+                  Vista previa del carrito
+                </Text>
+
+                <Text style={styles.cartDescription}>
+                  Todavía no tienes productos agregados.
+                </Text>
+              </View>
+
               <MaterialIcons
-                name="shopping-cart"
-                size={23}
-                color="#C51F2B"
+                name="chevron-right"
+                size={25}
+                color="#94A3B8"
               />
             </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Mi carrito de compras
-              </Text>
+            <View style={styles.divider} />
 
-              <Text style={styles.cardSubtitle}>
-                Tus productos seleccionados
+            <View style={styles.totalContainer}>
+              <View>
+                <Text style={styles.totalLabel}>
+                  Total de tu carrito
+                </Text>
+
+                <Text style={styles.totalCaption}>
+                  Importe de tus productos
+                </Text>
+              </View>
+
+              <Text style={styles.totalPrice}>
+                Q 0.00
               </Text>
             </View>
-          </View>
 
-          <View style={styles.cartPreview}>
-            <View style={styles.cartIconContainer}>
+            <View style={styles.emptyMessage}>
               <MaterialIcons
-                name="shopping-basket"
-                size={34}
+                name="info-outline"
+                size={17}
                 color="#14569A"
               />
+
+              <Text style={styles.emptyText}>
+                Agrega bebidas desde el catálogo para comenzar.
+              </Text>
+            </View>
+          </View>
+
+          {/* MIS COMPRAS */}
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconBlue}>
+                <MaterialIcons
+                  name="receipt-long"
+                  size={23}
+                  color="#14569A"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>
+                  Mis compras
+                </Text>
+
+                <Text style={styles.cardSubtitle}>
+                  Historial de pedidos
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.cartInfo}>
-              <Text style={styles.cartTitle}>
-                Vista previa del carrito
+            <View style={styles.purchaseEmpty}>
+              <View style={styles.purchaseIconContainer}>
+                <MaterialIcons
+                  name="history"
+                  size={38}
+                  color="#14569A"
+                />
+              </View>
+
+              <Text style={styles.purchaseTitle}>
+                Sin compras todavía
               </Text>
 
-              <Text style={styles.cartDescription}>
-                Todavía no tienes productos agregados.
+              <Text style={styles.purchaseDescription}>
+                Cuando realices una compra, aparecerá
+                aquí el detalle de tu pedido.
+              </Text>
+            </View>
+          </View>
+
+          {/* INFORMACIÓN */}
+
+          <View style={styles.infoCard}>
+            <MaterialIcons
+              name="local-drink"
+              size={30}
+              color="#FFFFFF"
+            />
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle}>
+                ¡Elige tu bebida favorita!
+              </Text>
+
+              <Text style={styles.infoDescription}>
+                Explora nuestro catálogo y disfruta de SMARTGO.
               </Text>
             </View>
 
             <MaterialIcons
-              name="chevron-right"
-              size={25}
-              color="#94A3B8"
+              name="arrow-forward"
+              size={22}
+              color="#FFFFFF"
             />
           </View>
 
-          <View style={styles.divider} />
+          {/* PIE DE PÁGINA */}
 
-          <View style={styles.totalContainer}>
-            <View>
-              <Text style={styles.totalLabel}>
-                Total de tu carrito
-              </Text>
+          <Text style={styles.footer}>
+            SMARTGO · Máquina expendedora inteligente
+          </Text>
 
-              <Text style={styles.totalCaption}>
-                Importe de tus productos
-              </Text>
-            </View>
-
-            <Text style={styles.totalPrice}>
-              Q 0.00
-            </Text>
-          </View>
-
-          <View style={styles.emptyMessage}>
-            <MaterialIcons
-              name="info-outline"
-              size={17}
-              color="#14569A"
-            />
-
-            <Text style={styles.emptyText}>
-              Agrega bebidas desde el catálogo para comenzar.
-            </Text>
-          </View>
-        </View>
-
-        {/* MIS COMPRAS */}
-
-        <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconBlue}>
-              <MaterialIcons
-                name="receipt-long"
-                size={23}
-                color="#14569A"
-              />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Mis compras
-              </Text>
-
-              <Text style={styles.cardSubtitle}>
-                Historial de pedidos
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.purchaseEmpty}>
-            <View style={styles.purchaseIconContainer}>
-              <MaterialIcons
-                name="history"
-                size={38}
-                color="#14569A"
-              />
-            </View>
-
-            <Text style={styles.purchaseTitle}>
-              Sin compras todavía
-            </Text>
-
-            <Text style={styles.purchaseDescription}>
-              Cuando realices una compra, aparecerá
-              aquí el detalle de tu pedido.
-            </Text>
-          </View>
-        </View>
-
-        {/* INFORMACIÓN */}
-
-        <View style={styles.infoCard}>
-          <MaterialIcons
-            name="local-drink"
-            size={30}
-            color="#FFFFFF"
-          />
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.infoTitle}>
-              ¡Elige tu bebida favorita!
-            </Text>
-
-            <Text style={styles.infoDescription}>
-              Explora nuestro catálogo y disfruta de SMARTGO.
-            </Text>
-          </View>
-
-          <MaterialIcons
-            name="arrow-forward"
-            size={22}
-            color="#FFFFFF"
-          />
-        </View>
-
-        {/* PIE DE PÁGINA */}
-
-        <Text style={styles.footer}>
-          SMARTGO · Máquina expendedora inteligente
-        </Text>
-
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </ImageBackground>
   );
 }
@@ -295,6 +300,7 @@ export default function UserScreen() {
 // ============================================
 
 const styles = StyleSheet.create({
+
   background: {
     flex: 1,
   },
@@ -304,10 +310,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10, 31, 58, 0.38)',
   },
 
+  safeArea: {
+    flex: 1,
+  },
+
   container: {
-    padding: 17,
-    paddingTop: 25,
-    paddingBottom: 35,
+    paddingHorizontal: 17,
+    paddingTop: 35,
+    paddingBottom: 65,
   },
 
   // MARCA Y BIENVENIDA
@@ -649,4 +659,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '600',
   },
+
 });

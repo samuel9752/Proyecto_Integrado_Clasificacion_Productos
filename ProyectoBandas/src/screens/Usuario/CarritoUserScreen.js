@@ -20,7 +20,7 @@ import { getAuth } from 'firebase/auth';
 import { firebaseConfig } from '../../firebase/FirebaseConfig';
 import { useCart } from '../../context/CartContext';
 
-import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import FondoAzul from '../../../assets/Fondo_2.jpeg';  
 import MiLogo from '../../../assets/logo.jpeg';
 
 const API_URL = 'http://192.168.1.120:3000';
