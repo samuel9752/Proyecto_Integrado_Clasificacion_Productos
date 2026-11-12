@@ -5,7 +5,7 @@ import HitorialVentasScreen from '../screens/Admin/HistorialVentasScreen';
 import ExistenciasScreen from '../screens/Admin/ExistenciasScreen';
 import AdminScreen from '../screens/Admin/AdminScreen';
 import DetectorScreen from '../screens/Admin/DetectorScreen';
-
+//hola
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
