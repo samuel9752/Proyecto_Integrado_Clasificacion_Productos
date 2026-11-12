@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Image,
   ImageBackground,
+  SafeAreaView,
 } from 'react-native';
 
 import {
@@ -50,7 +51,6 @@ export default function UserProfileScreen({ navigation }) {
   const db = getFirestore(app);
 
   // CERRAR SESIÓN
-
   const cerrarSesion = () => {
     Alert.alert(
       'Cerrar sesión',
@@ -81,7 +81,6 @@ export default function UserProfileScreen({ navigation }) {
   };
 
   // DETECTAR USUARIO AUTENTICADO
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -120,11 +119,9 @@ export default function UserProfileScreen({ navigation }) {
     );
 
     return unsubscribe;
-
   }, []);
 
   // CARGANDO PERFIL
-
   if (cargando) {
     return (
       <ImageBackground
@@ -134,22 +131,23 @@ export default function UserProfileScreen({ navigation }) {
       >
         <View style={styles.overlay} />
 
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator
-            size="large"
-            color="#FFFFFF"
-          />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="large"
+              color="#FFFFFF"
+            />
 
-          <Text style={styles.loadingText}>
-            Cargando información...
-          </Text>
-        </View>
+            <Text style={styles.loadingText}>
+              Cargando información...
+            </Text>
+          </View>
+        </SafeAreaView>
       </ImageBackground>
     );
   }
 
   // USUARIO NO AUTENTICADO
-
   if (!usuario) {
     return (
       <ImageBackground
@@ -159,19 +157,21 @@ export default function UserProfileScreen({ navigation }) {
       >
         <View style={styles.overlay} />
 
-        <View style={styles.loadingContainer}>
-          <View style={styles.errorIcon}>
-            <MaterialIcons
-              name="person-off"
-              size={45}
-              color="#C51F2B"
-            />
-          </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <View style={styles.errorIcon}>
+              <MaterialIcons
+                name="person-off"
+                size={45}
+                color="#C51F2B"
+              />
+            </View>
 
-          <Text style={styles.loadingText}>
-            No hay ningún usuario iniciado sesión.
-          </Text>
-        </View>
+            <Text style={styles.loadingText}>
+              No hay ningún usuario iniciado sesión.
+            </Text>
+          </View>
+        </SafeAreaView>
       </ImageBackground>
     );
   }
@@ -187,300 +187,293 @@ export default function UserProfileScreen({ navigation }) {
     >
       <View style={styles.overlay} />
 
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
 
-        {/* ENCABEZADO */}
-
-        <View style={styles.brandHeader}>
-          <View style={styles.brandRow}>
-            <Image
-              source={MiLogo}
-              style={styles.logo}
-            />
-
-            <View>
-              <Text style={styles.brandName}>
-                SMARTGO
-              </Text>
-
-              <Text style={styles.brandCaption}>
-                VENDING SYSTEM
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.headerIcon}>
-            <MaterialIcons
-              name="person"
-              size={28}
-              color="#14569A"
-            />
-          </View>
-        </View>
-
-        {/* PRESENTACIÓN DEL PERFIL */}
-
-        <View style={styles.profileWelcome}>
-          <View style={styles.avatar}>
-            <MaterialIcons
-              name="person"
-              size={43}
-              color="#FFFFFF"
-            />
-          </View>
-
-          <Text style={styles.profileTitle}>
-            Mi perfil
-          </Text>
-
-          <Text style={styles.profileSubtitle}>
-            Consulta la información de tu cuenta
-          </Text>
-
-          <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-
-            <Text style={styles.statusText}>
-              Cuenta activa
-            </Text>
-          </View>
-        </View>
-
-        {/* INFORMACIÓN DE LA CUENTA */}
-
-        <View style={styles.card}>
-
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIcon}>
-              <MaterialIcons
-                name="account-circle"
-                size={23}
-                color="#14569A"
+          {/* ENCABEZADO */}
+          <View style={styles.brandHeader}>
+            <View style={styles.brandRow}>
+              <Image
+                source={MiLogo}
+                style={styles.logo}
               />
-            </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Datos de la cuenta
-              </Text>
+              <View>
+                <Text style={styles.brandName}>
+                  SMARTGO
+                </Text>
 
-              <Text style={styles.cardSubtitle}>
-                Tu información personal
-              </Text>
-            </View>
-          </View>
-
-          {/* CORREO */}
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <MaterialIcons
-                name="email"
-                size={22}
-                color="#C51F2B"
-              />
-            </View>
-
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>
-                CORREO ELECTRÓNICO
-              </Text>
-
-              <Text style={styles.value}>
-                {usuario.email}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* ROL */}
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <MaterialIcons
-                name="verified-user"
-                size={22}
-                color="#14569A"
-              />
-            </View>
-
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>
-                ROL ASIGNADO
-              </Text>
-
-              <View
-                style={[
-                  styles.roleBadge,
-                  {
-                    backgroundColor: esAdmin
-                      ? '#FDEEEF'
-                      : '#EAF2FC',
-                  },
-                ]}
-              >
-                <MaterialIcons
-                  name={esAdmin ? 'admin-panel-settings' : 'person'}
-                  size={16}
-                  color={esAdmin ? '#C51F2B' : '#14569A'}
-                />
-
-                <Text
-                  style={[
-                    styles.roleText,
-                    {
-                      color: esAdmin ? '#C51F2B' : '#14569A',
-                    },
-                  ]}
-                >
-                  {esAdmin
-                    ? 'Administrador'
-                    : usuario.tipoUsuario === 'usuario'
-                      ? 'Usuario'
-                      : usuario.tipoUsuario}
+                <Text style={styles.brandCaption}>
+                  VENDING SYSTEM
                 </Text>
               </View>
             </View>
-          </View>
 
-          <View style={styles.divider} />
-
-          {/* IDENTIFICADOR */}
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
+            <View style={styles.headerIcon}>
               <MaterialIcons
-                name="fingerprint"
-                size={22}
+                name="person"
+                size={28}
                 color="#14569A"
               />
             </View>
+          </View>
 
-            <View style={styles.infoContent}>
-              <Text style={styles.label}>
-                IDENTIFICADOR DE CUENTA
-              </Text>
+          {/* PRESENTACIÓN DEL PERFIL */}
+          <View style={styles.profileWelcome}>
+            <View style={styles.avatar}>
+              <MaterialIcons
+                name="person"
+                size={43}
+                color="#FFFFFF"
+              />
+            </View>
 
-              <Text style={styles.uid}>
-                {usuario.uid}
+            <Text style={styles.profileTitle}>
+              Mi perfil
+            </Text>
+
+            <Text style={styles.profileSubtitle}>
+              Consulta la información de tu cuenta
+            </Text>
+
+            <View style={styles.statusBadge}>
+              <View style={styles.statusDot} />
+
+              <Text style={styles.statusText}>
+                Cuenta activa
               </Text>
             </View>
           </View>
 
-        </View>
+          {/* INFORMACIÓN DE LA CUENTA */}
+          <View style={styles.card}>
 
-        {/* SISTEMA DE BEBIDAS */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIcon}>
+                <MaterialIcons
+                  name="account-circle"
+                  size={23}
+                  color="#14569A"
+                />
+              </View>
 
-        <View style={styles.card}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>
+                  Datos de la cuenta
+                </Text>
 
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconRed}>
-              <MaterialIcons
-                name="local-drink"
-                size={23}
-                color="#C51F2B"
-              />
+                <Text style={styles.cardSubtitle}>
+                  Tu información personal
+                </Text>
+              </View>
             </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>
-                Sistema de bebidas
-              </Text>
+            {/* CORREO */}
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <MaterialIcons
+                  name="email"
+                  size={22}
+                  color="#C51F2B"
+                />
+              </View>
 
-              <Text style={styles.cardSubtitle}>
-                Marcas disponibles en SMARTGO
-              </Text>
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>
+                  CORREO ELECTRÓNICO
+                </Text>
+
+                <Text style={styles.value}>
+                  {usuario.email}
+                </Text>
+              </View>
             </View>
+
+            <View style={styles.divider} />
+
+            {/* ROL */}
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <MaterialIcons
+                  name="verified-user"
+                  size={22}
+                  color="#14569A"
+                />
+              </View>
+
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>
+                  ROL ASIGNADO
+                </Text>
+
+                <View
+                  style={[
+                    styles.roleBadge,
+                    {
+                      backgroundColor: esAdmin
+                        ? '#FDEEEF'
+                        : '#EAF2FC',
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={esAdmin ? 'admin-panel-settings' : 'person'}
+                    size={16}
+                    color={esAdmin ? '#C51F2B' : '#14569A'}
+                  />
+
+                  <Text
+                    style={[
+                      styles.roleText,
+                      {
+                        color: esAdmin ? '#C51F2B' : '#14569A',
+                      },
+                    ]}
+                  >
+                    {esAdmin
+                      ? 'Administrador'
+                      : usuario.tipoUsuario === 'usuario'
+                        ? 'Usuario'
+                        : usuario.tipoUsuario}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* IDENTIFICADOR */}
+            <View style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <MaterialIcons
+                  name="fingerprint"
+                  size={22}
+                  color="#14569A"
+                />
+              </View>
+
+              <View style={styles.infoContent}>
+                <Text style={styles.label}>
+                  IDENTIFICADOR DE CUENTA
+                </Text>
+
+                <Text style={styles.uid}>
+                  {usuario.uid}
+                </Text>
+              </View>
+            </View>
+
           </View>
 
-          <View style={styles.brandsContainer}>
+          {/* SISTEMA DE BEBIDAS */}
+          <View style={styles.card}>
 
-            <View style={styles.cocaCard}>
-              <MaterialIcons
-                name="local-drink"
-                size={27}
-                color="#C51F2B"
-              />
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconRed}>
+                <MaterialIcons
+                  name="local-drink"
+                  size={23}
+                  color="#C51F2B"
+                />
+              </View>
 
-              <Text style={styles.cocaText}>
-                Coca-Cola
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>
+                  Sistema de bebidas
+                </Text>
+
+                <Text style={styles.cardSubtitle}>
+                  Marcas disponibles en SMARTGO
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.pepsiCard}>
+            <View style={styles.brandsContainer}>
+
+              <View style={styles.cocaCard}>
+                <MaterialIcons
+                  name="local-drink"
+                  size={27}
+                  color="#C51F2B"
+                />
+
+                <Text style={styles.cocaText}>
+                  Coca-Cola
+                </Text>
+              </View>
+
+              <View style={styles.pepsiCard}>
+                <MaterialIcons
+                  name="local-drink"
+                  size={27}
+                  color="#14569A"
+                />
+
+                <Text style={styles.pepsiText}>
+                  PEPSI
+                </Text>
+              </View>
+
+            </View>
+
+            <View style={styles.brandFooter}>
               <MaterialIcons
-                name="local-drink"
-                size={27}
-                color="#14569A"
+                name="check-circle"
+                size={17}
+                color="#26834B"
               />
 
-              <Text style={styles.pepsiText}>
-                PEPSI
+              <Text style={styles.brandFooterText}>
+                Clasificación inteligente de bebidas
               </Text>
             </View>
 
           </View>
 
-          <View style={styles.brandFooter}>
+          {/* CERRAR SESIÓN */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={cerrarSesion}
+            activeOpacity={0.85}
+          >
             <MaterialIcons
-              name="check-circle"
-              size={17}
-              color="#26834B"
+              name="logout"
+              size={22}
+              color="#FFFFFF"
             />
 
-            <Text style={styles.brandFooterText}>
-              Clasificación inteligente de bebidas
+            <Text style={styles.logoutButtonText}>
+              Cerrar sesión
             </Text>
+
+            <MaterialIcons
+              name="arrow-forward"
+              size={19}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+
+          {/* PIE DE PÁGINA */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              SMARTGO
+            </Text>
+
+            <Text style={styles.footerSubtext}>
+              Máquina expendedora inteligente
+            </Text>
+
+            <View style={styles.footerLines}>
+              <View style={styles.redLine} />
+              <View style={styles.blueLine} />
+            </View>
           </View>
 
-        </View>
-
-        {/* CERRAR SESIÓN */}
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={cerrarSesion}
-          activeOpacity={0.85}
-        >
-          <MaterialIcons
-            name="logout"
-            size={22}
-            color="#FFFFFF"
-          />
-
-          <Text style={styles.logoutButtonText}>
-            Cerrar sesión
-          </Text>
-
-          <MaterialIcons
-            name="arrow-forward"
-            size={19}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-
-        {/* PIE DE PÁGINA */}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            SMARTGO
-          </Text>
-
-          <Text style={styles.footerSubtext}>
-            Máquina expendedora inteligente
-          </Text>
-
-          <View style={styles.footerLines}>
-            <View style={styles.redLine} />
-            <View style={styles.blueLine} />
-          </View>
-        </View>
-
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </ImageBackground>
   );
 }
@@ -500,14 +493,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10, 31, 58, 0.38)',
   },
 
+  safeArea: {
+    flex: 1,
+  },
+
   container: {
-    padding: 17,
-    paddingTop: 25,
-    paddingBottom: 35,
+    paddingHorizontal: 17,
+    paddingTop: 35,
+    paddingBottom: 55,
   },
 
   // CARGA
-
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -533,7 +529,6 @@ const styles = StyleSheet.create({
   },
 
   // MARCA
-
   brandHeader: {
     backgroundColor: '#FFFFFF',
     borderRadius: 17,
@@ -582,7 +577,6 @@ const styles = StyleSheet.create({
   },
 
   // PERFIL
-
   profileWelcome: {
     backgroundColor: '#FFFFFF',
     borderRadius: 19,
@@ -640,7 +634,6 @@ const styles = StyleSheet.create({
   },
 
   // TARJETAS
-
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -687,7 +680,6 @@ const styles = StyleSheet.create({
   },
 
   // INFORMACIÓN
-
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -749,7 +741,6 @@ const styles = StyleSheet.create({
   },
 
   // MARCAS
-
   brandsContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -801,7 +792,6 @@ const styles = StyleSheet.create({
   },
 
   // CERRAR SESIÓN
-
   logoutButton: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -822,7 +812,6 @@ const styles = StyleSheet.create({
   },
 
   // PIE
-
   footer: {
     alignItems: 'center',
     marginTop: 5,
