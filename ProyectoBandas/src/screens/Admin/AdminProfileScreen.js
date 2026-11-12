@@ -8,7 +8,10 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Alert
+  Alert,
+  Image,
+  ImageBackground,
+  StatusBar
 } from 'react-native';
 
 import {
@@ -32,6 +35,9 @@ import { firebaseConfig } from '../../firebase/FirebaseConfig';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import MiLogo from '../../../assets/logo.jpeg';
+
 export default function AdminProfileScreen({ navigation }) {
 
   const [usuario, setUsuario] = useState(null);
@@ -54,12 +60,7 @@ export default function AdminProfileScreen({ navigation }) {
 
           try {
 
-            const referencia = doc(
-              db,
-              'usuarios',
-              user.uid
-            );
-
+            const referencia = doc(db, 'usuarios', user.uid);
             const documento = await getDoc(referencia);
 
             const datos = documento.exists()
@@ -98,87 +99,97 @@ export default function AdminProfileScreen({ navigation }) {
 
   const cerrarSesion = () => {
 
-  Alert.alert(
-    'Cerrar sesión',
-    '¿Estás seguro de que deseas cerrar tu sesión de administrador?',
-    [
-      {
-        text: 'Cancelar',
-        style: 'cancel'
-      },
-      {
-        text: 'Cerrar sesión',
-        style: 'destructive',
-        onPress: async () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar tu sesión de administrador?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel'
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
 
-          try {
+            try {
 
-            await signOut(auth);
+              await signOut(auth);
+              navigation.getParent()?.navigate('Login');
 
-            navigation.getParent()?.navigate('Login');
+            } catch (error) {
 
-          } catch (error) {
+              console.log('Error al cerrar sesión:', error);
 
-            console.log('Error al cerrar sesión:', error);
+              Alert.alert(
+                'Error',
+                'No se pudo cerrar la sesión.'
+              );
 
-            Alert.alert(
-              'Error',
-              'No se pudo cerrar la sesión.'
-            );
+            }
 
           }
-
         }
-      }
-    ]
-  );
+      ]
+    );
 
-};
+  };
 
-  // CARGANDO PERFIL
+  // CARGANDO
 
   if (cargando) {
 
     return (
-      <View style={styles.loadingContainer}>
+      <ImageBackground
+        source={FondoAzul}
+        style={styles.loadingContainer}
+        resizeMode="cover"
+      >
 
-        <ActivityIndicator
-          size="large"
-          color="#E5252A"
-        />
+        <StatusBar barStyle="light-content" />
+
+        <View style={styles.loadingOverlay} />
+
+        <ActivityIndicator size="large" color="#FFFFFF" />
 
         <Text style={styles.loadingText}>
-          Cargando información...
+          Cargando perfil...
         </Text>
 
-      </View>
+      </ImageBackground>
     );
 
   }
 
-  // USUARIO NO AUTENTICADO
+  // SIN USUARIO
 
   if (!usuario) {
 
     return (
-      <View style={styles.loadingContainer}>
+      <ImageBackground
+        source={FondoAzul}
+        style={styles.loadingContainer}
+        resizeMode="cover"
+      >
+
+        <View style={styles.loadingOverlay} />
 
         <MaterialIcons
           name="person-off"
-          size={55}
-          color="#E5252A"
+          size={60}
+          color="#FFFFFF"
         />
 
         <Text style={styles.loadingText}>
           No hay ningún usuario iniciado sesión.
         </Text>
 
-      </View>
+      </ImageBackground>
     );
 
   }
 
-  // VALIDAR ROL
+  // VALIDAR ADMINISTRADOR
 
   const esAdmin =
     usuario.tipoUsuario.toLowerCase() === 'administrador';
@@ -186,167 +197,229 @@ export default function AdminProfileScreen({ navigation }) {
   if (!esAdmin) {
 
     return (
-      <View style={styles.loadingContainer}>
+      <ImageBackground
+        source={FondoAzul}
+        style={styles.loadingContainer}
+        resizeMode="cover"
+      >
+
+        <View style={styles.loadingOverlay} />
 
         <MaterialIcons
           name="lock"
-          size={55}
-          color="#E5252A"
+          size={60}
+          color="#FFFFFF"
         />
 
         <Text style={styles.loadingText}>
           No tienes permisos de administrador.
         </Text>
 
-      </View>
+      </ImageBackground>
     );
 
   }
 
   return (
 
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
+    <ImageBackground
+      source={FondoAzul}
+      style={styles.background}
+      resizeMode="cover"
     >
 
-      {/* ENCABEZADO */}
+      <StatusBar barStyle="light-content" />
 
-      <View style={styles.header}>
+      <View style={styles.overlay} />
 
-        <View style={styles.headerTop}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
 
-          <View>
+        {/* ENCABEZADO */}
 
-            <Text style={styles.brand}>
-              SMART VENDING SYSTEM
-            </Text>
+        <View style={styles.header}>
 
-            <Text style={styles.headerTitle}>
-              Perfil de administrador
-            </Text>
+          <View style={styles.brandContainer}>
+
+            <Image
+              source={MiLogo}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+
+            <View>
+              <Text style={styles.brand}>
+                SMARTGO
+              </Text>
+
+             
+            </View>
 
           </View>
 
           <View style={styles.headerIcon}>
-
             <MaterialIcons
               name="admin-panel-settings"
-              size={29}
+              size={28}
               color="#FFFFFF"
             />
-
           </View>
 
         </View>
 
-        <View style={styles.headerDivider} />
+        {/* TÍTULO */}
 
-        <View style={styles.profileHeader}>
+        <View style={styles.titleContainer}>
 
-          <View style={styles.avatar}>
-
-            <MaterialIcons
-              name="admin-panel-settings"
-              size={43}
-              color="#FFFFFF"
-            />
-
-          </View>
-
-          <View style={styles.profileHeaderInfo}>
-
-            <Text style={styles.profileTitle}>
-              Administrador
-            </Text>
-
-            <Text style={styles.profileSubtitle}>
-              Gestiona y supervisa el sistema
-            </Text>
-
-          </View>
-
-        </View>
-
-      </View>
-
-      {/* INFORMACIÓN DE LA CUENTA */}
-
-      <View style={styles.card}>
-
-        <View style={styles.cardHeader}>
-
-          <Text style={styles.cardTitle}>
-            Datos de la cuenta
+          <Text style={styles.welcome}>
+            MI CUENTA
           </Text>
 
-          <View style={styles.statusBadge}>
+          <Text style={styles.title}>
+            Perfil de administrador
+          </Text>
 
-            <View style={styles.statusDot} />
-
-            <Text style={styles.statusText}>
-              Cuenta activa
-            </Text>
-
-          </View>
+          <Text style={styles.subtitle}>
+            Consulta y administra la información de tu cuenta.
+          </Text>
 
         </View>
 
-        {/* CORREO */}
+        {/* TARJETA DE PERFIL */}
 
-        <View style={styles.infoRow}>
+        <View style={styles.profileCard}>
 
-          <View style={styles.infoIcon}>
+          <View style={styles.profileTop}>
 
-            <MaterialIcons
-              name="email"
-              size={23}
-              color="#596579"
-            />
+            <View style={styles.avatarContainer}>
 
-          </View>
+              <MaterialIcons
+                name="admin-panel-settings"
+                size={48}
+                color="#FFFFFF"
+              />
 
-          <View style={styles.infoContent}>
+            </View>
 
-            <Text style={styles.label}>
-              CORREO ELECTRÓNICO
-            </Text>
+            <View style={styles.profileInfo}>
 
-            <Text style={styles.value}>
-              {usuario.email}
-            </Text>
-
-          </View>
-
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ROL */}
-
-        <View style={styles.infoRow}>
-
-          <View style={styles.infoIcon}>
-
-            <MaterialIcons
-              name="verified-user"
-              size={23}
-              color="#596579"
-            />
-
-          </View>
-
-          <View style={styles.infoContent}>
-
-            <Text style={styles.label}>
-              ROL ASIGNADO
-            </Text>
-
-            <View style={styles.roleBadge}>
-
-              <Text style={styles.roleText}>
+              <Text style={styles.profileName}>
                 Administrador
+              </Text>
+
+              <Text style={styles.profileDescription}>
+                Cuenta de administración SMARTGO
+              </Text>
+
+              <View style={styles.activeBadge}>
+
+                <View style={styles.activeDot} />
+
+                <Text style={styles.activeText}>
+                  Cuenta activa
+                </Text>
+
+              </View>
+
+            </View>
+
+          </View>
+
+          <View style={styles.profileDivider} />
+
+          <Text style={styles.sectionTitle}>
+            INFORMACIÓN DE LA CUENTA
+          </Text>
+
+          {/* CORREO */}
+
+          <View style={styles.infoRow}>
+
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="email"
+                size={22}
+                color="#1766A8"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+
+              <Text style={styles.label}>
+                CORREO ELECTRÓNICO
+              </Text>
+
+              <Text style={styles.value}>
+                {usuario.email}
+              </Text>
+
+            </View>
+
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* ROL */}
+
+          <View style={styles.infoRow}>
+
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="verified-user"
+                size={22}
+                color="#1766A8"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+
+              <Text style={styles.label}>
+                ROL ASIGNADO
+              </Text>
+
+              <View style={styles.roleBadge}>
+
+                <MaterialIcons
+                  name="admin-panel-settings"
+                  size={15}
+                  color="#1766A8"
+                />
+
+                <Text style={styles.roleText}>
+                  Administrador
+                </Text>
+
+              </View>
+
+            </View>
+
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* UID */}
+
+          <View style={styles.infoRow}>
+
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="fingerprint"
+                size={22}
+                color="#1766A8"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+
+              <Text style={styles.label}>
+                IDENTIFICADOR DE CUENTA
+              </Text>
+
+              <Text style={styles.uid}>
+                {usuario.uid}
               </Text>
 
             </View>
@@ -355,259 +428,292 @@ export default function AdminProfileScreen({ navigation }) {
 
         </View>
 
-        <View style={styles.divider} />
+        {/* INFORMACIÓN DEL SISTEMA */}
 
-        {/* IDENTIFICADOR */}
+        <View style={styles.systemCard}>
 
-        <View style={styles.infoRow}>
-
-          <View style={styles.infoIcon}>
-
+          <View style={styles.systemIcon}>
             <MaterialIcons
-              name="fingerprint"
-              size={23}
-              color="#596579"
+              name="security"
+              size={28}
+              color="#FFFFFF"
             />
-
           </View>
 
-          <View style={styles.infoContent}>
+          <View style={styles.systemInfo}>
 
-            <Text style={styles.label}>
-              IDENTIFICADOR DE CUENTA
+            <Text style={styles.systemTitle}>
+              Acceso administrativo
             </Text>
 
-            <Text style={styles.uid}>
-              {usuario.uid}
+            <Text style={styles.systemDescription}>
+              Tu cuenta tiene asignado el rol de administrador
+              dentro del sistema SMARTGO.
             </Text>
 
           </View>
 
         </View>
 
-      </View>
+        {/* CERRAR SESIÓN */}
 
-      
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={cerrarSesion}
+          activeOpacity={0.85}
+        >
 
-      {/* CERRAR SESIÓN */}
+          <MaterialIcons
+            name="logout"
+            size={23}
+            color="#FFFFFF"
+          />
 
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={cerrarSesion}
-        activeOpacity={0.8}
-      >
+          <Text style={styles.logoutText}>
+            Cerrar sesión
+          </Text>
 
-        <MaterialIcons
-          name="logout"
-          size={22}
-          color="#FFFFFF"
-        />
+          <MaterialIcons
+            name="arrow-forward"
+            size={21}
+            color="#FFFFFF"
+          />
 
-        <Text style={styles.logoutText}>
-          Cerrar sesión
-        </Text>
+        </TouchableOpacity>
 
-      </TouchableOpacity>
+        {/* PIE DE PÁGINA */}
 
-      {/* PIE DE PÁGINA */}
+        <View style={styles.footer}>
 
-      <View style={styles.footer}>
+          <Image
+            source={MiLogo}
+            style={styles.footerLogo}
+            resizeMode="contain"
+          />
 
-        <Text style={styles.footerText}>
-          SMART VENDING SYSTEM
-        </Text>
+          <Text style={styles.footerTitle}>
+            SMARTGO
+          </Text>
 
-        <Text style={styles.footerSubtext}>
-          Panel de administración
-        </Text>
+          <Text style={styles.footerSubtitle}>
+            PANEL DE ADMINISTRACIÓN
+          </Text>
 
-        <View style={styles.footerLines}>
-
-          <View style={styles.redLine} />
-
-          <View style={styles.blueLine} />
+          <View style={styles.footerLines}>
+            <View style={styles.redLine} />
+            <View style={styles.blueLine} />
+          </View>
 
         </View>
 
-      </View>
+      </ScrollView>
 
-    </ScrollView>
+    </ImageBackground>
 
   );
 
 }
 
-
 const styles = StyleSheet.create({
 
-  // PANTALLA PRINCIPAL
+  background: {
+    flex: 1
+  },
 
   screen: {
-    flex: 1,
-    backgroundColor: '#06152D'
+    flex: 1
   },
 
   container: {
-    padding: 18,
+    padding: 20,
+    paddingTop: 45,
     paddingBottom: 35
   },
 
-  // CARGA
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(3, 17, 39, 0.78)'
+  },
+
+  // CARGANDO
 
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#06152D',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12
+    gap: 15
+  },
+
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(3, 17, 39, 0.82)'
   },
 
   loadingText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    color: '#A9C5E8'
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 25
   },
 
   // ENCABEZADO
 
   header: {
-    backgroundColor: '#0B2142',
-    borderRadius: 17,
-    padding: 22,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#174477',
-    borderTopWidth: 3,
-    borderTopColor: '#087BCE',
-    elevation: 5
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 30
   },
 
-  headerTop: {
+  brandContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center'
   },
 
-  brand: {
-    fontSize: 10,
-    color: '#36A9FF',
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    marginBottom: 8
+  logo: {
+    width: 55,
+    height: 55,
+    borderRadius: 12,
+    marginRight: 12
   },
 
-  headerTitle: {
-    fontSize: 21,
+  brand: {
     color: '#FFFFFF',
-    fontWeight: '900'
+    fontSize: 21,
+    fontWeight: '900',
+    letterSpacing: 1.5
+  },
+
+  brandSubtitle: {
+    color: '#55B8FF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+    marginTop: 3
   },
 
   headerIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: '#0756A5',
+    borderRadius: 15,
+    backgroundColor: '#1264A8',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#168BDB'
+    borderColor: '#51B5F5'
   },
 
-  headerDivider: {
-    height: 1,
-    backgroundColor: '#24466D',
-    marginVertical: 20
+  // TÍTULO
+
+  titleContainer: {
+    marginBottom: 22
   },
 
-  // INFORMACIÓN DEL ADMINISTRADOR
+  welcome: {
+    color: '#55B8FF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 7
+  },
 
-  profileHeader: {
+  title: {
+    color: '#FFFFFF',
+    fontSize: 25,
+    fontWeight: '900'
+  },
+
+  subtitle: {
+    color: '#C1D4E9',
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 19
+  },
+
+  // PERFIL
+
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 17,
+    elevation: 7
+  },
+
+  profileTop: {
     flexDirection: 'row',
     alignItems: 'center'
   },
 
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 15,
-    backgroundColor: '#0756A5',
+  avatarContainer: {
+    width: 78,
+    height: 78,
+    borderRadius: 20,
+    backgroundColor: '#145B9A',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#168BDB'
+    borderWidth: 3,
+    borderColor: '#D7ECFF'
   },
 
-  profileHeaderInfo: {
-    marginLeft: 15,
-    flex: 1
+  profileInfo: {
+    flex: 1,
+    marginLeft: 15
   },
 
-  profileTitle: {
+  profileName: {
     fontSize: 20,
-    color: '#FFFFFF',
+    color: '#102D4D',
     fontWeight: '900'
   },
 
-  profileSubtitle: {
+  profileDescription: {
     fontSize: 11,
-    color: '#A9C5E8',
-    marginTop: 6
+    color: '#718096',
+    marginTop: 5
   },
 
-  // TARJETAS
-
-  card: {
-    backgroundColor: '#0B2142',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 17,
-    borderWidth: 1,
-    borderColor: '#174477',
-    elevation: 4
-  },
-
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    flexWrap: 'wrap',
-    gap: 8
-  },
-
-  cardTitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '900'
-  },
-
-  // ESTADO DE CUENTA
-
-  statusBadge: {
+  activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#123E3A',
-    paddingVertical: 7,
-    paddingHorizontal: 11,
+    alignSelf: 'flex-start',
+    backgroundColor: '#E5F8ED',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#219653'
+    marginTop: 10
   },
 
-  statusDot: {
+  activeDot: {
     width: 7,
     height: 7,
     borderRadius: 5,
-    backgroundColor: '#36D47A',
-    marginRight: 7
+    backgroundColor: '#21B66F',
+    marginRight: 6
   },
 
-  statusText: {
+  activeText: {
     fontSize: 10,
-    color: '#66E09A',
-    fontWeight: '900'
+    color: '#16834D',
+    fontWeight: '800'
   },
 
-  // INFORMACIÓN DE LA CUENTA
+  profileDivider: {
+    height: 1,
+    backgroundColor: '#E7EDF4',
+    marginVertical: 22
+  },
+
+  sectionTitle: {
+    fontSize: 11,
+    color: '#1766A8',
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 8
+  },
+
+  // DATOS
 
   infoRow: {
     flexDirection: 'row',
@@ -618,12 +724,10 @@ const styles = StyleSheet.create({
   infoIcon: {
     width: 45,
     height: 45,
-    borderRadius: 12,
-    backgroundColor: '#102D55',
+    borderRadius: 13,
+    backgroundColor: '#EAF4FC',
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1B4D80'
+    alignItems: 'center'
   },
 
   infoContent: {
@@ -632,193 +736,146 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 10,
-    color: '#7FAAD0',
+    color: '#8A9AAF',
+    fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.8,
-    marginBottom: 8
+    marginBottom: 7
   },
 
   value: {
+    color: '#193653',
     fontSize: 13,
-    color: '#FFFFFF',
-    fontWeight: '600'
+    fontWeight: '700'
   },
 
   uid: {
-    fontSize: 10,
-    color: '#A9C5E8'
+    color: '#53677E',
+    fontSize: 10
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#1B385D'
+    backgroundColor: '#E9EEF4'
   },
 
-  // ROL ADMINISTRADOR
-
   roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
+    backgroundColor: '#EAF4FC',
+    paddingHorizontal: 10,
     paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 7,
-    backgroundColor: '#102F57',
-    borderWidth: 1,
-    borderColor: '#087BCE'
+    borderRadius: 8,
+    gap: 6
   },
 
   roleText: {
+    color: '#1766A8',
     fontSize: 11,
-    fontWeight: '900',
-    color: '#36A9FF'
+    fontWeight: '900'
   },
 
-  // PANEL ADMINISTRATIVO
+  // SISTEMA
 
-  sectionHeader: {
+  systemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8
+    backgroundColor: '#0D3159',
+    borderRadius: 17,
+    padding: 17,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#28649A'
   },
 
-  description: {
-    fontSize: 12,
-    color: '#A9BBD2',
-    lineHeight: 19,
-    marginBottom: 12
-  },
-
-  adminOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15
-  },
-
-  adminIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 10,
-    backgroundColor: '#102D55',
+  systemIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 13,
+    backgroundColor: '#1766A8',
     justifyContent: 'center',
     alignItems: 'center'
   },
 
-  adminInfo: {
+  systemInfo: {
     flex: 1,
     marginLeft: 13
   },
 
-  adminTitle: {
-    fontSize: 14,
+  systemTitle: {
     color: '#FFFFFF',
-    fontWeight: 'bold'
+    fontSize: 13,
+    fontWeight: '900'
   },
 
-  adminDescription: {
-    fontSize: 11,
-    color: '#A9BBD2',
+  systemDescription: {
+    color: '#B8D1E9',
+    fontSize: 10,
+    lineHeight: 16,
     marginTop: 5
-  },
-
-  // MARCAS
-
-  brandDescription: {
-    fontSize: 12,
-    color: '#A9BBD2',
-    marginTop: 6,
-    marginBottom: 17
-  },
-
-  brandsContainer: {
-    flexDirection: 'row',
-    gap: 12
-  },
-
-  cocaCard: {
-    flex: 1,
-    backgroundColor: '#351C30',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#A92838'
-  },
-
-  cocaText: {
-    fontSize: 15,
-    color: '#FF3545',
-    fontWeight: '900'
-  },
-
-  pepsiCard: {
-    flex: 1,
-    backgroundColor: '#102D55',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#087BCE'
-  },
-
-  pepsiText: {
-    fontSize: 16,
-    color: '#36A9FF',
-    fontWeight: '900'
   },
 
   // CERRAR SESIÓN
 
   logoutButton: {
-    backgroundColor: '#C51F2B',
-    borderRadius: 13,
-    padding: 17,
+    backgroundColor: '#C92532',
+    borderRadius: 15,
+    paddingVertical: 17,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginBottom: 22,
+    justifyContent: 'space-between',
+    marginBottom: 25,
+    elevation: 5,
     borderWidth: 1,
-    borderColor: '#F04450',
-    elevation: 4
+    borderColor: '#F15B65'
   },
 
   logoutText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '900'
+    fontWeight: '900',
+    flex: 1,
+    marginLeft: 12
   },
 
   // PIE DE PÁGINA
 
   footer: {
     alignItems: 'center',
-    marginTop: 8,
-    padding: 15,
-    backgroundColor: '#0B2142',
-    borderRadius: 13,
+    padding: 17,
+    backgroundColor: 'rgba(9, 34, 65, 0.88)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#174477'
+    borderColor: '#28517A'
   },
 
-  footerText: {
-    fontSize: 12,
+  footerLogo: {
+    width: 43,
+    height: 43,
+    borderRadius: 10,
+    marginBottom: 8
+  },
+
+  footerTitle: {
     color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '900',
-    letterSpacing: 1.5
+    letterSpacing: 2
   },
 
-  footerSubtext: {
-    fontSize: 10,
-    color: '#8FAAC9',
-    marginTop: 6
+  footerSubtitle: {
+    color: '#7DBCEB',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginTop: 5
   },
 
   footerLines: {
     flexDirection: 'row',
-    width: 70,
+    width: 75,
     height: 4,
     borderRadius: 5,
     overflow: 'hidden',

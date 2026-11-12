@@ -214,7 +214,6 @@ export default function ComprasUserScreen({ navigation }) {
           </Text>
 
           <View style={styles.stockContainer}>
-
             <View
               style={[
                 styles.stockIndicator,
@@ -240,7 +239,6 @@ export default function ComprasUserScreen({ navigation }) {
                 ? 'Agotado'
                 : `${disponible} disponibles`}
             </Text>
-
           </View>
 
           <View style={styles.quantityContainer}>
@@ -319,198 +317,200 @@ export default function ComprasUserScreen({ navigation }) {
   // PANTALLA PRINCIPAL
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ImageBackground
+      source={FondoAzul}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.backgroundOverlay} />
 
-      <ImageBackground
-        source={FondoAzul}
-        style={styles.background}
-        resizeMode="cover"
-      >
+      <SafeAreaView style={styles.safeArea}>
 
-        <View style={styles.backgroundOverlay}>
+        <ScrollView
+          style={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
+          {/* ENCABEZADO */}
 
-            {/* ENCABEZADO */}
+          <View style={styles.header}>
 
-            <View style={styles.header}>
+            <View style={styles.headerTop}>
 
-              <View style={styles.headerTop}>
-
-                <View style={styles.logoImageContainer}>
-                  <Image
-                    source={MiLogo}
-                    style={styles.logoImage}
-                    resizeMode="contain"
-                  />
-                </View>
-
-                <Text style={styles.logoText}>
-                  SMARTGO
-                </Text>
-
-                <View style={styles.headerTag}>
-                  <Text style={styles.headerTagText}>
-                    VENDING
-                  </Text>
-                </View>
-
+              <View style={styles.logoImageContainer}>
+                <Image
+                  source={MiLogo}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </View>
 
-              <Text style={styles.headerTitle}>
-                ¡Elige tu bebida!
+              <Text style={styles.logoText}>
+                SMARTGO
               </Text>
 
-              <Text style={styles.headerSubtitle}>
-                Tu bebida favorita, a un solo toque.
-              </Text>
-
-              <View style={styles.headerDecoration}>
-                <View style={styles.decorationCircle} />
-                <View style={styles.decorationCircleSmall} />
+              <View style={styles.headerTag}>
+                <Text style={styles.headerTagText}>
+                  VENDING
+                </Text>
               </View>
 
             </View>
 
-            {/* PRODUCTOS */}
+            <Text style={styles.headerTitle}>
+              ¡Elige tu bebida!
+            </Text>
 
-            <View style={styles.productsSection}>
+            <Text style={styles.headerSubtitle}>
+              Tu bebida favorita, a un solo toque.
+            </Text>
 
-              <View style={styles.sectionHeading}>
-                <Text style={styles.sectionTitle}>
-                  Nuestros productos
-                </Text>
-
-                <Text style={styles.sectionSubtitle}>
-                  Selecciona tu favorito
-                </Text>
-              </View>
-
-              {errorConexion && (
-                <View style={styles.errorContainer}>
-
-                  <MaterialIcons
-                    name="wifi-off"
-                    size={20}
-                    color="#D71920"
-                  />
-
-                  <Text style={styles.errorText}>
-                    No hay conexión con la máquina
-                  </Text>
-
-                  <TouchableOpacity onPress={obtenerStock}>
-                    <Text style={styles.retryText}>
-                      Reintentar
-                    </Text>
-                  </TouchableOpacity>
-
-                </View>
-              )}
-
-              {cargando ? (
-                <View style={styles.loadingContainer}>
-
-                  <ActivityIndicator
-                    size="large"
-                    color="#FFFFFF"
-                  />
-
-                  <Text style={styles.loadingText}>
-                    Cargando productos...
-                  </Text>
-
-                </View>
-              ) : (
-                <View style={styles.productsContainer}>
-                  {PRODUCTOS.map((producto) =>
-                    renderProducto(producto)
-                  )}
-                </View>
-              )}
-
+            <View style={styles.headerDecoration}>
+              <View style={styles.decorationCircle} />
+              <View style={styles.decorationCircleSmall} />
             </View>
 
-          </ScrollView>
+          </View>
 
-          {/* RESUMEN DEL CARRITO */}
+          {/* PRODUCTOS */}
 
-          <View style={styles.bottomContainer}>
+          <View style={styles.productsSection}>
 
-            <View style={styles.summaryInfo}>
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionTitle}>
+                Nuestros productos
+              </Text>
 
-              <View>
-                <Text style={styles.summaryLabel}>
-                  {totalProductos} productos en tu carrito
-                </Text>
+              <Text style={styles.sectionSubtitle}>
+                Selecciona tu favorito
+              </Text>
+            </View>
 
-                <Text style={styles.summaryTotal}>
-                  Q{totalCompra.toFixed(2)}
-                </Text>
-              </View>
+            {errorConexion && (
+              <View style={styles.errorContainer}>
 
-              <TouchableOpacity
-                style={[
-                  styles.cartButton,
-                  totalProductos === 0 &&
-                    styles.emptyCartButton,
-                ]}
-                onPress={() => navigation.navigate('Carrito')}
-                activeOpacity={0.85}
-              >
                 <MaterialIcons
-                  name="shopping-cart"
-                  size={21}
+                  name="wifi-off"
+                  size={20}
+                  color="#D71920"
+                />
+
+                <Text style={styles.errorText}>
+                  No hay conexión con la máquina
+                </Text>
+
+                <TouchableOpacity onPress={obtenerStock}>
+                  <Text style={styles.retryText}>
+                    Reintentar
+                  </Text>
+                </TouchableOpacity>
+
+              </View>
+            )}
+
+            {cargando ? (
+              <View style={styles.loadingContainer}>
+
+                <ActivityIndicator
+                  size="large"
                   color="#FFFFFF"
                 />
 
-                <Text style={styles.cartButtonText}>
-                  Ver carrito
+                <Text style={styles.loadingText}>
+                  Cargando productos...
                 </Text>
-              </TouchableOpacity>
 
+              </View>
+            ) : (
+              <View style={styles.productsContainer}>
+                {PRODUCTOS.map((producto) =>
+                  renderProducto(producto)
+                )}
+              </View>
+            )}
+
+          </View>
+
+        </ScrollView>
+
+        {/* RESUMEN DEL CARRITO */}
+
+        <View style={styles.bottomContainer}>
+
+          <View style={styles.summaryInfo}>
+
+            <View>
+              <Text style={styles.summaryLabel}>
+                {totalProductos} productos en tu carrito
+              </Text>
+
+              <Text style={styles.summaryTotal}>
+                Q{totalCompra.toFixed(2)}
+              </Text>
             </View>
+
+            <TouchableOpacity
+              style={[
+                styles.cartButton,
+                totalProductos === 0 &&
+                  styles.emptyCartButton,
+              ]}
+              onPress={() => navigation.navigate('Carrito')}
+              activeOpacity={0.85}
+            >
+              <MaterialIcons
+                name="shopping-cart"
+                size={21}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.cartButtonText}>
+                Ver carrito
+              </Text>
+            </TouchableOpacity>
 
           </View>
 
         </View>
 
-      </ImageBackground>
-
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
+// ============================================
 // ESTILOS
+// ============================================
 
 const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-    backgroundColor: '#071C3B',
-  },
 
   background: {
     flex: 1,
   },
 
   backgroundOverlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(5, 24, 52, 0.20)',
   },
 
+  safeArea: {
+    flex: 1,
+  },
+
+  scroll: {
+    flex: 1,
+  },
+
   scrollContent: {
-    paddingBottom: 25,
+    paddingBottom: 30,
   },
 
   // ENCABEZADO
 
   header: {
     paddingHorizontal: 25,
-    paddingTop: 45,
+    paddingTop: 35,
     paddingBottom: 35,
     overflow: 'hidden',
     position: 'relative',
@@ -636,24 +636,24 @@ const styles = StyleSheet.create({
   // TARJETAS
 
   productCard: {
-  width: '60%',
-  minHeight: 405,
-  backgroundColor: '#FFFFFF',
-  borderRadius: 22,
-  marginBottom: 35,
-  padding: 15,
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#EAF0F6',
-  elevation: 5,
-  shadowColor: '#000000',
-  shadowOffset: {
-    width: 0,
-    height: 3,
+    width: '60%',
+    minHeight: 405,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    marginBottom: 35,
+    padding: 15,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EAF0F6',
+    elevation: 5,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
   },
-  shadowOpacity: 0.12,
-  shadowRadius: 8,
-},
 
   imageContainer: {
     width: '100%',
@@ -810,7 +810,8 @@ const styles = StyleSheet.create({
   bottomContainer: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 15,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     elevation: 12,
