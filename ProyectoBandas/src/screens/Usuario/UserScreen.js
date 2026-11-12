@@ -7,115 +7,162 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Easing
+  Easing,
+  Image,
+  ImageBackground,
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import MiLogo from '../../../assets/logo.jpeg';
+
 export default function UserScreen() {
-
-  // ANIMACIÓN DE BIENVENIDA
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(-25)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-
     Animated.parallel([
-
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true
+        useNativeDriver: true,
       }),
 
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 800,
         easing: Easing.out(Easing.ease),
-        useNativeDriver: true
-      })
-
+        useNativeDriver: true,
+      }),
     ]).start();
-
   }, []);
 
   return (
-
-    <View style={styles.screen}>
+    <ImageBackground
+      source={FondoAzul}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
 
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* BIENVENIDA */}
+        {/* ENCABEZADO */}
 
         <Animated.View
           style={[
             styles.welcomeContainer,
             {
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
+              transform: [{ translateY: slideAnim }],
+            },
           ]}
         >
+          <View style={styles.brandRow}>
+            <Image source={MiLogo} style={styles.logo} />
 
-          
+            <View>
+              <Text style={styles.brandName}>SMARTGO</Text>
+              
+            </View>
+          </View>
+
+          <View style={styles.welcomeIcon}>
+            <MaterialIcons
+              name="waving-hand"
+              size={32}
+              color="#C51F2B"
+            />
+          </View>
+
           <Text style={styles.welcomeTitle}>
-            ¡Bienvenido Usuario!
+            ¡Bienvenido!
           </Text>
 
           <Text style={styles.welcomeSubtitle}>
             Disfruta de tus bebidas favoritas
           </Text>
 
+          <View style={styles.statusBadge}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>
+              Panel de usuario
+            </Text>
+          </View>
         </Animated.View>
 
+        {/* TARJETAS DE RESUMEN */}
 
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryIconBlue}>
+              <MaterialIcons
+                name="shopping-cart"
+                size={25}
+                color="#14569A"
+              />
+            </View>
 
+            <Text style={styles.summaryNumber}>0</Text>
 
+            <Text style={styles.summaryLabel}>
+              Productos en carrito
+            </Text>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryIconRed}>
+              <MaterialIcons
+                name="receipt-long"
+                size={25}
+                color="#C51F2B"
+              />
+            </View>
+
+            <Text style={styles.summaryNumber}>0</Text>
+
+            <Text style={styles.summaryLabel}>
+              Compras realizadas
+            </Text>
+          </View>
+        </View>
 
         {/* MI CARRITO */}
 
         <View style={styles.card}>
-
           <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconRed}>
+              <MaterialIcons
+                name="shopping-cart"
+                size={23}
+                color="#C51F2B"
+              />
+            </View>
 
-            <MaterialIcons
-              name="shopping-cart"
-              size={23}
-              color="#C51F2B"
-            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>
+                Mi carrito de compras
+              </Text>
 
-            <Text style={styles.cardTitle}>
-              Mi carrito de compras
-            </Text>
-
+              <Text style={styles.cardSubtitle}>
+                Tus productos seleccionados
+              </Text>
+            </View>
           </View>
 
-          <Text style={styles.description}>
-            Aquí puedes consultar los productos que
-            deseas comprar.
-          </Text>
-
-
-          {/* VISTA PREVIA DEL CARRITO */}
-
           <View style={styles.cartPreview}>
-
             <View style={styles.cartIconContainer}>
-
               <MaterialIcons
                 name="shopping-basket"
-                size={35}
-                color="#0756A5"
+                size={34}
+                color="#14569A"
               />
-
             </View>
 
             <View style={styles.cartInfo}>
-
               <Text style={styles.cartTitle}>
                 Vista previa del carrito
               </Text>
@@ -123,81 +170,76 @@ export default function UserScreen() {
               <Text style={styles.cartDescription}>
                 Todavía no tienes productos agregados.
               </Text>
-
             </View>
 
+            <MaterialIcons
+              name="chevron-right"
+              size={25}
+              color="#94A3B8"
+            />
           </View>
-
 
           <View style={styles.divider} />
 
-
-          {/* TOTAL DEL CARRITO */}
-
           <View style={styles.totalContainer}>
+            <View>
+              <Text style={styles.totalLabel}>
+                Total de tu carrito
+              </Text>
 
-            <Text style={styles.totalLabel}>
-              Total de tu carrito
-            </Text>
+              <Text style={styles.totalCaption}>
+                Importe de tus productos
+              </Text>
+            </View>
 
             <Text style={styles.totalPrice}>
               Q 0.00
             </Text>
-
           </View>
 
           <View style={styles.emptyMessage}>
-
             <MaterialIcons
               name="info-outline"
               size={17}
-              color="#7B8491"
+              color="#14569A"
             />
 
             <Text style={styles.emptyText}>
               Agrega bebidas desde el catálogo para comenzar.
             </Text>
-
           </View>
-
         </View>
-
 
         {/* MIS COMPRAS */}
 
         <View style={styles.card}>
-
           <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconBlue}>
+              <MaterialIcons
+                name="receipt-long"
+                size={23}
+                color="#14569A"
+              />
+            </View>
 
-            <MaterialIcons
-              name="receipt-long"
-              size={23}
-              color="#0756A5"
-            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>
+                Mis compras
+              </Text>
 
-            <Text style={styles.cardTitle}>
-              Mis compras
-            </Text>
-
+              <Text style={styles.cardSubtitle}>
+                Historial de pedidos
+              </Text>
+            </View>
           </View>
 
-          <Text style={styles.description}>
-            Consulta el historial de tus compras realizadas.
-          </Text>
-
-
-          {/* HISTORIAL DE COMPRAS */}
-
           <View style={styles.purchaseEmpty}>
-
             <View style={styles.purchaseIconContainer}>
-
               <MaterialIcons
                 name="history"
                 size={38}
-                color="#7B8491"
+                color="#14569A"
               />
-
             </View>
 
             <Text style={styles.purchaseTitle}>
@@ -208,264 +250,360 @@ export default function UserScreen() {
               Cuando realices una compra, aparecerá
               aquí el detalle de tu pedido.
             </Text>
-
           </View>
-
         </View>
 
+        {/* INFORMACIÓN */}
 
-    
+        <View style={styles.infoCard}>
+          <MaterialIcons
+            name="local-drink"
+            size={30}
+            color="#FFFFFF"
+          />
 
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>
+              ¡Elige tu bebida favorita!
+            </Text>
+
+            <Text style={styles.infoDescription}>
+              Explora nuestro catálogo y disfruta de SMARTGO.
+            </Text>
+          </View>
+
+          <MaterialIcons
+            name="arrow-forward"
+            size={22}
+            color="#FFFFFF"
+          />
+        </View>
 
         {/* PIE DE PÁGINA */}
 
         <Text style={styles.footer}>
-          Máquina expendedora · Panel de usuario
+          SMARTGO · Máquina expendedora inteligente
         </Text>
 
       </ScrollView>
-
-    </View>
-
+    </ImageBackground>
   );
-
 }
 
-
-// ========================================
+// ============================================
 // ESTILOS
-// ========================================
+// ============================================
 
 const styles = StyleSheet.create({
-
-  screen: {
+  background: {
     flex: 1,
-    backgroundColor: '#EEF0F3'
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 31, 58, 0.38)',
   },
 
   container: {
-    padding: 18,
-    paddingBottom: 35
+    padding: 17,
+    paddingTop: 25,
+    paddingBottom: 35,
   },
 
-
-  // BIENVENIDA
+  // MARCA Y BIENVENIDA
 
   welcomeContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 22,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 15,
-    marginBottom: 25
+    marginBottom: 17,
+    elevation: 5,
+  },
+
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 10,
+    marginBottom: 23,
+  },
+
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+
+  brandName: {
+    color: '#172B4D',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+
+  brandCaption: {
+    color: '#64748B',
+    fontSize: 9,
+    letterSpacing: 2,
+    marginTop: 2,
   },
 
   welcomeIcon: {
     width: 65,
     height: 65,
-    borderRadius: 35,
-    backgroundColor: '#E1EBF8',
+    borderRadius: 22,
+    backgroundColor: '#FDEEEF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12
   },
 
   welcomeTitle: {
-    fontSize: 35,
-    fontWeight: 'bold',
-    color: '#252B35',
+    fontSize: 29,
+    fontWeight: '900',
+    color: '#172033',
     textAlign: 'center',
-    padding: '80'
+    marginTop: 13,
   },
 
   welcomeSubtitle: {
-    fontSize: 12,
-    color: '#7B8491',
-    marginTop: 8,
-    textAlign: 'center'
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 7,
+    textAlign: 'center',
   },
 
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAF2FC',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 16,
+    gap: 7,
+  },
+
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: '#15803D',
+  },
+
+  statusText: {
+    color: '#14569A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
   // RESUMEN
 
   summaryContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 17
+    marginBottom: 17,
   },
 
   summaryCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    padding: 16,
+    borderRadius: 17,
+    padding: 15,
     alignItems: 'center',
-    elevation: 2
+    elevation: 3,
   },
 
   summaryIconBlue: {
-    width: 43,
-    height: 43,
-    borderRadius: 10,
-    backgroundColor: '#E9F0FA',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#EAF2FC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 9
+    marginBottom: 9,
   },
 
   summaryIconRed: {
-    width: 43,
-    height: 43,
-    borderRadius: 10,
-    backgroundColor: '#FCEBEC',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#FDEEEF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 9
+    marginBottom: 9,
   },
 
   summaryNumber: {
-    fontSize: 23,
-    fontWeight: 'bold',
-    color: '#252B35'
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#172033',
   },
 
   summaryLabel: {
-    fontSize: 11,
-    color: '#7B8491',
-    marginTop: 4,
-    textAlign: 'center'
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 5,
+    textAlign: 'center',
   },
-
 
   // TARJETAS GENERALES
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    padding: 20,
+    borderRadius: 18,
+    padding: 18,
     marginBottom: 17,
-    elevation: 2
+    elevation: 4,
   },
 
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8
+    gap: 11,
+    marginBottom: 16,
+  },
+
+  sectionIconRed: {
+    width: 43,
+    height: 43,
+    borderRadius: 13,
+    backgroundColor: '#FDEEEF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  sectionIconBlue: {
+    width: 43,
+    height: 43,
+    borderRadius: 13,
+    backgroundColor: '#EAF2FC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   cardTitle: {
-    fontSize: 16,
-    color: '#252B35',
-    fontWeight: 'bold'
+    fontSize: 15,
+    color: '#172033',
+    fontWeight: '900',
   },
 
-  description: {
-    fontSize: 12,
-    color: '#7B8491',
-    lineHeight: 19,
-    marginBottom: 15
+  cardSubtitle: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 3,
   },
 
   divider: {
     height: 1,
     backgroundColor: '#E8EBEF',
-    marginVertical: 12
+    marginVertical: 15,
   },
-
 
   // CARRITO
 
   cartPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F7FA',
-    borderRadius: 10,
-    padding: 13
+    backgroundColor: '#F5F8FC',
+    borderRadius: 13,
+    padding: 13,
   },
 
   cartIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: '#E9F0FA',
+    width: 53,
+    height: 53,
+    borderRadius: 13,
+    backgroundColor: '#EAF2FC',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
 
   cartInfo: {
     flex: 1,
-    marginLeft: 12
+    marginLeft: 12,
   },
 
   cartTitle: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: '#252B35'
+    fontWeight: '800',
+    color: '#172033',
   },
 
   cartDescription: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#7B8491',
     marginTop: 5,
-    lineHeight: 16
+    lineHeight: 16,
   },
 
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
   },
 
   totalLabel: {
     fontSize: 13,
-    color: '#252B35',
-    fontWeight: 'bold'
+    color: '#172033',
+    fontWeight: '800',
+  },
+
+  totalCaption: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 4,
   },
 
   totalPrice: {
-    fontSize: 18,
+    fontSize: 21,
     color: '#C51F2B',
-    fontWeight: 'bold'
+    fontWeight: '900',
   },
 
   emptyMessage: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 14,
-    gap: 7
+    marginTop: 15,
+    gap: 7,
+    backgroundColor: '#F5F8FC',
+    padding: 11,
+    borderRadius: 10,
   },
 
   emptyText: {
     flex: 1,
     fontSize: 10,
-    color: '#7B8491'
+    color: '#64748B',
+    lineHeight: 16,
   },
 
-
-  // HISTORIAL DE COMPRAS
+  // HISTORIAL
 
   purchaseEmpty: {
-    backgroundColor: '#F5F7FA',
-    borderRadius: 10,
-    padding: 22,
+    backgroundColor: '#F5F8FC',
+    borderRadius: 14,
+    padding: 23,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
 
   purchaseIconContainer: {
-    width: 65,
-    height: 65,
-    borderRadius: 35,
-    backgroundColor: '#E8EBEF',
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: '#EAF2FC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12
+    marginBottom: 13,
   },
 
   purchaseTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#252B35',
-    textAlign: 'center'
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#172033',
+    textAlign: 'center',
   },
 
   purchaseDescription: {
@@ -473,35 +611,42 @@ const styles = StyleSheet.create({
     color: '#7B8491',
     textAlign: 'center',
     lineHeight: 18,
-    marginTop: 7
+    marginTop: 7,
   },
 
+  // INFORMACIÓN
 
-  // CUENTA
-
-  accountOption: {
+  infoCard: {
+    backgroundColor: '#14569A',
+    borderRadius: 17,
+    padding: 17,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12
+    gap: 12,
+    elevation: 4,
+    marginBottom: 18,
   },
 
-  accountText: {
-    flex: 1,
+  infoTitle: {
+    color: '#FFFFFF',
     fontSize: 13,
-    color: '#252B35',
-    fontWeight: '500'
+    fontWeight: '900',
   },
 
+  infoDescription: {
+    color: '#DCEAF8',
+    fontSize: 10,
+    lineHeight: 16,
+    marginTop: 4,
+  },
 
-  // PIE DE PÁGINA
+  // PIE
 
   footer: {
-    fontSize: 11,
-    color: '#9AA2AD',
+    fontSize: 10,
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10
-  }
-
+    marginTop: 4,
+    fontWeight: '600',
+  },
 });

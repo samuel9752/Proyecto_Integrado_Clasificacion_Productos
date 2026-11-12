@@ -1,12 +1,41 @@
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity} from 'react-native';
-import { getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
-import { getFirestore, doc, getDoc} from 'firebase/firestore';
-import { initializeApp, getApps} from 'firebase/app';
+
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+  Image,
+  ImageBackground,
+} from 'react-native';
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+} from 'firebase/firestore';
+
+import {
+  initializeApp,
+  getApps,
+} from 'firebase/app';
+
 import { firebaseConfig } from '../../firebase/FirebaseConfig';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import MiLogo from '../../../assets/logo.jpeg';
 
 export default function UserProfileScreen({ navigation }) {
 
@@ -21,12 +50,15 @@ export default function UserProfileScreen({ navigation }) {
   const db = getFirestore(app);
 
   // CERRAR SESIÓN
+
   const cerrarSesion = () => {
-    Alert.alert('Cerrando sesión', '¿Estas seguro de cerrar sesion?',
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar tu sesión?',
       [
         {
           text: 'Cancelar',
-          style: 'cancel'
+          style: 'cancel',
         },
         {
           text: 'Cerrar sesión',
@@ -42,21 +74,20 @@ export default function UserProfileScreen({ navigation }) {
                 'No se pudo cerrar la sesión.'
               );
             }
-          }
-        }
+          },
+        },
       ]
     );
-
   };
 
   // DETECTAR USUARIO AUTENTICADO
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (user) => {
         if (user) {
           try {
-
             const referencia = doc(
               db,
               'usuarios',
@@ -72,24 +103,19 @@ export default function UserProfileScreen({ navigation }) {
             setUsuario({
               email: user.email || 'No disponible',
               uid: user.uid,
-              tipoUsuario: datos.tipoUsuario || 'No definido'
+              tipoUsuario: datos.tipoUsuario || 'No definido',
             });
 
           } catch (error) {
-
             console.log('Error al cargar perfil:', error);
             setUsuario(null);
-
           }
 
         } else {
-
           setUsuario(null);
-
         }
 
         setCargando(false);
-
       }
     );
 
@@ -100,488 +126,564 @@ export default function UserProfileScreen({ navigation }) {
   // CARGANDO PERFIL
 
   if (cargando) {
-
     return (
-      <View style={styles.loadingContainer}>
+      <ImageBackground
+        source={FondoAzul}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay} />
 
-        <ActivityIndicator
-          size="large"
-          color="#E5252A"
-        />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="large"
+            color="#FFFFFF"
+          />
 
-        <Text style={styles.loadingText}>
-          Cargando información...
-        </Text>
-
-      </View>
+          <Text style={styles.loadingText}>
+            Cargando información...
+          </Text>
+        </View>
+      </ImageBackground>
     );
-
   }
 
   // USUARIO NO AUTENTICADO
 
   if (!usuario) {
-
     return (
-      <View style={styles.loadingContainer}>
+      <ImageBackground
+        source={FondoAzul}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay} />
 
-        <MaterialIcons
-          name="person-off"
-          size={55}
-          color="#E5252A"
-        />
+        <View style={styles.loadingContainer}>
+          <View style={styles.errorIcon}>
+            <MaterialIcons
+              name="person-off"
+              size={45}
+              color="#C51F2B"
+            />
+          </View>
 
-        <Text style={styles.loadingText}>
-          No hay ningún usuario iniciado sesión.
-        </Text>
-
-      </View>
+          <Text style={styles.loadingText}>
+            No hay ningún usuario iniciado sesión.
+          </Text>
+        </View>
+      </ImageBackground>
     );
-
   }
 
   const esAdmin =
     usuario.tipoUsuario.toLowerCase() === 'administrador';
 
   return (
-
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
+    <ImageBackground
+      source={FondoAzul}
+      style={styles.background}
+      resizeMode="cover"
     >
+      <View style={styles.overlay} />
 
-      {/* ENCABEZADO */}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
 
-      <View style={styles.header}>
+        {/* ENCABEZADO */}
 
-        <View style={styles.headerTop}>
+        <View style={styles.brandHeader}>
+          <View style={styles.brandRow}>
+            <Image
+              source={MiLogo}
+              style={styles.logo}
+            />
 
-          <View>
+            <View>
+              <Text style={styles.brandName}>
+                SMARTGO
+              </Text>
 
-            <Text style={styles.brand}>
-              SMART VENDING SYSTEM
-            </Text>
-
-            <Text style={styles.headerTitle}>
-              Perfil de usuario
-            </Text>
-
+              <Text style={styles.brandCaption}>
+                VENDING SYSTEM
+              </Text>
+            </View>
           </View>
 
           <View style={styles.headerIcon}>
-
             <MaterialIcons
-              name="dashboard"
-              size={27}
-              color="#FFFFFF"
+              name="person"
+              size={28}
+              color="#14569A"
             />
-
           </View>
-
         </View>
 
-        <View style={styles.headerDivider} />
+        {/* PRESENTACIÓN DEL PERFIL */}
 
-        <View style={styles.profileHeader}>
-
+        <View style={styles.profileWelcome}>
           <View style={styles.avatar}>
-
             <MaterialIcons
               name="person"
               size={43}
               color="#FFFFFF"
             />
-
           </View>
 
-          <View style={styles.profileHeaderInfo}>
+          <Text style={styles.profileTitle}>
+            Mi perfil
+          </Text>
 
-            <Text style={styles.profileTitle}>
-              Mi cuenta
-            </Text>
-
-            <Text style={styles.profileSubtitle}>
-              Gestiona tu información personal
-            </Text>
-
-          </View>
-
-        </View>
-
-      </View>
-
-      {/* INFORMACIÓN DE LA CUENTA */}
-
-      <View style={styles.card}>
-
-        <View style={styles.cardHeader}>
-
-          <Text style={styles.cardTitle}>
-            Datos de la cuenta
+          <Text style={styles.profileSubtitle}>
+            Consulta la información de tu cuenta
           </Text>
 
           <View style={styles.statusBadge}>
-
             <View style={styles.statusDot} />
 
             <Text style={styles.statusText}>
               Cuenta activa
             </Text>
-
           </View>
-
         </View>
 
-        {/* CORREO */}
+        {/* INFORMACIÓN DE LA CUENTA */}
 
-        <View style={styles.infoRow}>
+        <View style={styles.card}>
 
-          <View style={styles.infoIcon}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIcon}>
+              <MaterialIcons
+                name="account-circle"
+                size={23}
+                color="#14569A"
+              />
+            </View>
 
-            <MaterialIcons
-              name="email"
-              size={23}
-              color="#596579"
-            />
-
-          </View>
-
-          <View style={styles.infoContent}>
-
-            <Text style={styles.label}>
-              CORREO ELECTRÓNICO
-            </Text>
-
-            <Text style={styles.value}>
-              {usuario.email}
-            </Text>
-
-          </View>
-
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ROL */}
-
-        <View style={styles.infoRow}>
-
-          <View style={styles.infoIcon}>
-
-            <MaterialIcons
-              name="verified-user"
-              size={23}
-              color="#596579"
-            />
-
-          </View>
-
-          <View style={styles.infoContent}>
-
-            <Text style={styles.label}>
-              ROL ASIGNADO
-            </Text>
-
-            <View style={[
-              styles.roleBadge,
-              {
-                backgroundColor: esAdmin
-                  ? '#FCEBEC'
-                  : '#E9F0FA'
-              }
-            ]}>
-
-              <Text style={[
-                styles.roleText,
-                {
-                  color: esAdmin
-                    ? '#C51F2B'
-                    : '#0756A5'
-                }
-              ]}>
-
-                {esAdmin
-                  ? 'Administrador'
-                  : usuario.tipoUsuario === 'usuario'
-                    ? 'Usuario'
-                    : usuario.tipoUsuario
-                }
-
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>
+                Datos de la cuenta
               </Text>
 
+              <Text style={styles.cardSubtitle}>
+                Tu información personal
+              </Text>
+            </View>
+          </View>
+
+          {/* CORREO */}
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="email"
+                size={22}
+                color="#C51F2B"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+              <Text style={styles.label}>
+                CORREO ELECTRÓNICO
+              </Text>
+
+              <Text style={styles.value}>
+                {usuario.email}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* ROL */}
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="verified-user"
+                size={22}
+                color="#14569A"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+              <Text style={styles.label}>
+                ROL ASIGNADO
+              </Text>
+
+              <View
+                style={[
+                  styles.roleBadge,
+                  {
+                    backgroundColor: esAdmin
+                      ? '#FDEEEF'
+                      : '#EAF2FC',
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={esAdmin ? 'admin-panel-settings' : 'person'}
+                  size={16}
+                  color={esAdmin ? '#C51F2B' : '#14569A'}
+                />
+
+                <Text
+                  style={[
+                    styles.roleText,
+                    {
+                      color: esAdmin ? '#C51F2B' : '#14569A',
+                    },
+                  ]}
+                >
+                  {esAdmin
+                    ? 'Administrador'
+                    : usuario.tipoUsuario === 'usuario'
+                      ? 'Usuario'
+                      : usuario.tipoUsuario}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* IDENTIFICADOR */}
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIcon}>
+              <MaterialIcons
+                name="fingerprint"
+                size={22}
+                color="#14569A"
+              />
+            </View>
+
+            <View style={styles.infoContent}>
+              <Text style={styles.label}>
+                IDENTIFICADOR DE CUENTA
+              </Text>
+
+              <Text style={styles.uid}>
+                {usuario.uid}
+              </Text>
+            </View>
+          </View>
+
+        </View>
+
+        {/* SISTEMA DE BEBIDAS */}
+
+        <View style={styles.card}>
+
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconRed}>
+              <MaterialIcons
+                name="local-drink"
+                size={23}
+                color="#C51F2B"
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>
+                Sistema de bebidas
+              </Text>
+
+              <Text style={styles.cardSubtitle}>
+                Marcas disponibles en SMARTGO
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.brandsContainer}>
+
+            <View style={styles.cocaCard}>
+              <MaterialIcons
+                name="local-drink"
+                size={27}
+                color="#C51F2B"
+              />
+
+              <Text style={styles.cocaText}>
+                Coca-Cola
+              </Text>
+            </View>
+
+            <View style={styles.pepsiCard}>
+              <MaterialIcons
+                name="local-drink"
+                size={27}
+                color="#14569A"
+              />
+
+              <Text style={styles.pepsiText}>
+                PEPSI
+              </Text>
             </View>
 
           </View>
 
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* IDENTIFICADOR */}
-
-        <View style={styles.infoRow}>
-
-          <View style={styles.infoIcon}>
-
+          <View style={styles.brandFooter}>
             <MaterialIcons
-              name="fingerprint"
-              size={23}
-              color="#596579"
+              name="check-circle"
+              size={17}
+              color="#26834B"
             />
 
-          </View>
-
-          <View style={styles.infoContent}>
-
-            <Text style={styles.label}>
-              IDENTIFICADOR DE CUENTA
+            <Text style={styles.brandFooterText}>
+              Clasificación inteligente de bebidas
             </Text>
-
-            <Text style={styles.uid}>
-              {usuario.uid}
-            </Text>
-
           </View>
 
         </View>
 
-      </View>
+        {/* CERRAR SESIÓN */}
 
-      {/* SISTEMA DE BEBIDAS */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={cerrarSesion}
+          activeOpacity={0.85}
+        >
+          <MaterialIcons
+            name="logout"
+            size={22}
+            color="#FFFFFF"
+          />
 
-      <View style={styles.card}>
+          <Text style={styles.logoutButtonText}>
+            Cerrar sesión
+          </Text>
 
-        <Text style={styles.cardTitle}>
-          Sistema de bebidas
-        </Text>
+          <MaterialIcons
+            name="arrow-forward"
+            size={19}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
 
-        <Text style={styles.brandDescription}>
-          Marcas disponibles en nuestra máquina
-        </Text>
+        {/* PIE DE PÁGINA */}
 
-        <View style={styles.brandsContainer}>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            SMARTGO
+          </Text>
 
-          <View style={styles.cocaCard}>
+          <Text style={styles.footerSubtext}>
+            Máquina expendedora inteligente
+          </Text>
 
-            <Text style={styles.cocaText}>
-              Coca-Cola
-            </Text>
-
+          <View style={styles.footerLines}>
+            <View style={styles.redLine} />
+            <View style={styles.blueLine} />
           </View>
-
-          <View style={styles.pepsiCard}>
-
-            <Text style={styles.pepsiText}>
-              PEPSI
-            </Text>
-
-          </View>
-
         </View>
 
-      </View>
-
-      {/* CERRAR SESIÓN */}
-
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={cerrarSesion}
-        activeOpacity={0.8}
-      >
-
-        <MaterialIcons
-          name="logout"
-          size={22}
-          color="#FFFFFF"
-        />
-
-        <Text style={styles.logoutButtonText}>
-          Cerrar sesión
-        </Text>
-
-      </TouchableOpacity>
-
-      {/* PIE DE PÁGINA */}
-
-      <View style={styles.footer}>
-
-        <Text style={styles.footerText}>
-          SMART VENDING SYSTEM
-        </Text>
-
-        <Text style={styles.footerSubtext}>
-          Clasificación inteligente de bebidas
-        </Text>
-
-        <View style={styles.footerLines}>
-
-          <View style={styles.redLine} />
-
-          <View style={styles.blueLine} />
-
-        </View>
-
-      </View>
-
-    </ScrollView>
-
+      </ScrollView>
+    </ImageBackground>
   );
-
 }
 
-
+// ============================================
 // ESTILOS
+// ============================================
 
 const styles = StyleSheet.create({
 
-  screen: {
+  background: {
     flex: 1,
-    backgroundColor: '#EEF0F3'
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 31, 58, 0.38)',
   },
 
   container: {
-    padding: 18,
-    paddingBottom: 35
+    padding: 17,
+    paddingTop: 25,
+    paddingBottom: 35,
   },
 
   // CARGA
 
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#EEF0F3',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12
+    padding: 25,
+    gap: 12,
   },
 
   loadingText: {
     fontSize: 14,
-    color: '#596579'
-  },
-
-  // ENCABEZADO
-
-  header: {
-    backgroundColor: '#171B24',
-    borderRadius: 16,
-    padding: 22,
-    marginBottom: 20,
-    elevation: 4
-  },
-
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-
-  brand: {
-    fontSize: 11,
-    color: '#AEB7C4',
-    fontWeight: 'bold',
-    letterSpacing: 1.2,
-    marginBottom: 7
-  },
-
-  headerTitle: {
-    fontSize: 23,
     color: '#FFFFFF',
-    fontWeight: 'bold'
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+
+  errorIcon: {
+    width: 75,
+    height: 75,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // MARCA
+
+  brandHeader: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 17,
+    padding: 17,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 4,
+  },
+
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+
+  logo: {
+    width: 49,
+    height: 49,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+
+  brandName: {
+    fontSize: 19,
+    color: '#172B4D',
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+
+  brandCaption: {
+    fontSize: 9,
+    color: '#64748B',
+    letterSpacing: 2,
+    marginTop: 3,
   },
 
   headerIcon: {
     width: 45,
     height: 45,
-    borderRadius: 10,
-    backgroundColor: '#292D33',
+    borderRadius: 13,
+    backgroundColor: '#EAF2FC',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
 
-  headerDivider: {
-    height: 1,
-    backgroundColor: '#424956',
-    marginVertical: 20
-  },
+  // PERFIL
 
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center'
+  profileWelcome: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 19,
+    padding: 22,
+    alignItems: 'center',
+    marginBottom: 17,
+    elevation: 4,
   },
 
   avatar: {
-    width: 65,
-    height: 65,
-    borderRadius: 12,
-    backgroundColor: '#E5252A',
+    width: 75,
+    height: 75,
+    borderRadius: 24,
+    backgroundColor: '#14569A',
     justifyContent: 'center',
-    alignItems: 'center'
-  },
-
-  profileHeaderInfo: {
-    marginLeft: 15,
-    flex: 1
+    alignItems: 'center',
+    marginBottom: 12,
   },
 
   profileTitle: {
-    fontSize: 19,
-    color: '#FFFFFF',
-    fontWeight: 'bold'
+    fontSize: 24,
+    color: '#172033',
+    fontWeight: '900',
   },
 
   profileSubtitle: {
-    fontSize: 12,
-    color: '#C1C8D2',
-    marginTop: 5
-  },
-
-  // TARJETAS
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    padding: 20,
-    marginBottom: 17,
-    elevation: 2
-  },
-
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    flexWrap: 'wrap',
-    gap: 8
-  },
-
-  cardTitle: {
-    fontSize: 16,
-    color: '#252B35',
-    fontWeight: 'bold'
+    fontSize: 11,
+    color: '#7B8491',
+    marginTop: 6,
+    textAlign: 'center',
   },
 
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E8F5EC',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    borderRadius: 20,
+    marginTop: 14,
+    gap: 7,
   },
 
   statusDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 5,
     backgroundColor: '#299D58',
-    marginRight: 6
   },
 
   statusText: {
     fontSize: 10,
     color: '#26834B',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+  },
+
+  // TARJETAS
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 17,
+    elevation: 4,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    marginBottom: 13,
+  },
+
+  sectionIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 13,
+    backgroundColor: '#EAF2FC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  sectionIconRed: {
+    width: 43,
+    height: 43,
+    borderRadius: 13,
+    backgroundColor: '#FDEEEF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  cardTitle: {
+    fontSize: 15,
+    color: '#172033',
+    fontWeight: '900',
+  },
+
+  cardSubtitle: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 4,
   },
 
   // INFORMACIÓN
@@ -589,101 +691,113 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16
+    paddingVertical: 15,
   },
 
   infoIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 10,
-    backgroundColor: '#F0F2F5',
+    width: 45,
+    height: 45,
+    borderRadius: 13,
+    backgroundColor: '#F5F8FC',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
 
   infoContent: {
     flex: 1,
-    marginLeft: 13
+    marginLeft: 13,
   },
 
   label: {
-    fontSize: 10,
-    color: '#7B8491',
-    fontWeight: 'bold',
-    letterSpacing: 0.6,
-    marginBottom: 7
+    fontSize: 9,
+    color: '#94A3B8',
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    marginBottom: 7,
   },
 
   value: {
-    fontSize: 14,
-    color: '#252B35',
-    fontWeight: '600'
+    fontSize: 13,
+    color: '#172033',
+    fontWeight: '700',
   },
 
   uid: {
     fontSize: 10,
-    color: '#596579'
+    color: '#596579',
+    lineHeight: 16,
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#E8EBEF'
+    backgroundColor: '#E8EBEF',
   },
 
   roleBadge: {
     alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 
   roleText: {
-    fontSize: 12,
-    fontWeight: 'bold'
+    fontSize: 11,
+    fontWeight: '800',
   },
 
   // MARCAS
 
-  brandDescription: {
-    fontSize: 12,
-    color: '#7B8491',
-    marginTop: 6,
-    marginBottom: 17
-  },
-
   brandsContainer: {
     flexDirection: 'row',
-    gap: 12
+    gap: 12,
   },
 
   cocaCard: {
     flex: 1,
-    backgroundColor: '#FCEBEC',
-    borderRadius: 9,
-    padding: 15,
+    backgroundColor: '#FDEEEF',
+    borderRadius: 14,
+    paddingVertical: 19,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    gap: 9,
   },
 
   cocaText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#C51F2B',
-    fontWeight: 'bold'
+    fontWeight: '900',
   },
 
   pepsiCard: {
     flex: 1,
-    backgroundColor: '#E9F0FA',
-    borderRadius: 9,
-    padding: 15,
+    backgroundColor: '#EAF2FC',
+    borderRadius: 14,
+    paddingVertical: 19,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    gap: 9,
   },
 
   pepsiText: {
-    fontSize: 16,
-    color: '#0756A5',
-    fontWeight: 'bold'
+    fontSize: 15,
+    color: '#14569A',
+    fontWeight: '900',
+  },
+
+  brandFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 17,
+  },
+
+  brandFooterText: {
+    color: '#64748B',
+    fontSize: 10,
   },
 
   // CERRAR SESIÓN
@@ -692,38 +806,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E5252A',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#C51F2B',
+    padding: 16,
+    borderRadius: 13,
     marginBottom: 20,
     gap: 10,
-    elevation: 2
+    elevation: 3,
   },
 
   logoutButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold'
+    fontSize: 14,
+    fontWeight: '900',
+    flex: 1,
   },
 
-  // PIE DE PÁGINA
+  // PIE
 
   footer: {
     alignItems: 'center',
-    marginTop: 8
+    marginTop: 5,
   },
 
   footerText: {
-    fontSize: 11,
-    color: '#596579',
-    fontWeight: 'bold',
-    letterSpacing: 1
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    letterSpacing: 1.2,
   },
 
   footerSubtext: {
     fontSize: 10,
-    color: '#9299A3',
-    marginTop: 5
+    color: '#DCEAF8',
+    marginTop: 5,
   },
 
   footerLines: {
@@ -732,17 +847,17 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 5,
     overflow: 'hidden',
-    marginTop: 13
+    marginTop: 12,
   },
 
   redLine: {
     flex: 1,
-    backgroundColor: '#E5252A'
+    backgroundColor: '#E5252A',
   },
 
   blueLine: {
     flex: 1,
-    backgroundColor: '#0756A5'
-  }
+    backgroundColor: '#14569A',
+  },
 
 });

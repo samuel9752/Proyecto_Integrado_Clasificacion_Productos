@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
+  ImageBackground,
 } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,6 +19,9 @@ import { getAuth } from 'firebase/auth';
 
 import { firebaseConfig } from '../../firebase/FirebaseConfig';
 import { useCart } from '../../context/CartContext';
+
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import MiLogo from '../../../assets/logo.jpeg';
 
 const API_URL = 'http://192.168.1.120:3000';
 
@@ -102,7 +107,7 @@ export default function CarritoUserScreen() {
   };
 
   // ============================================
-  // CAMBIAR CANTIDADES
+  // CANTIDADES
   // ============================================
 
   const cambiarCantidad = (producto, cantidad) => {
@@ -111,24 +116,22 @@ export default function CarritoUserScreen() {
   };
 
   // ============================================
-  // VALIDAR TARJETA DE DEMOSTRACIÓN
+  // VALIDAR TARJETA DEMO
   // ============================================
 
   const validarTarjeta = () => {
     const numeroLimpio = numero.replace(/\s/g, '');
 
-    return TARJETAS_DEMO.find((tarjeta) => {
-      return (
-        tarjeta.numero.replace(/\s/g, '') === numeroLimpio &&
-        tarjeta.titular === titular.trim().toUpperCase() &&
-        tarjeta.vencimiento === vencimiento &&
-        tarjeta.cvv === cvv
-      );
-    });
+    return TARJETAS_DEMO.find((tarjeta) => (
+      tarjeta.numero.replace(/\s/g, '') === numeroLimpio &&
+      tarjeta.titular === titular.trim().toUpperCase() &&
+      tarjeta.vencimiento === vencimiento &&
+      tarjeta.cvv === cvv
+    ));
   };
 
   // ============================================
-  // CONSULTAR AVANCE DEL PEDIDO
+  // CONSULTAR ESTADO DEL PEDIDO
   // ============================================
 
   const consultarEstado = async (id) => {
@@ -179,7 +182,7 @@ export default function CarritoUserScreen() {
   };
 
   // ============================================
-  // ENVIAR PEDIDO A SMARTGO
+  // ENVIAR PEDIDO
   // ============================================
 
   const enviarPedido = async () => {
@@ -187,15 +190,16 @@ export default function CarritoUserScreen() {
 
     if (!usuarioActual) {
       setProcesando(false);
+
       Alert.alert(
         'Sesión no encontrada',
         'Inicia sesión nuevamente.'
       );
+
       return;
     }
 
     try {
-      // Consultar inventario actualizado.
       const respuestaStock = await fetch(`${API_URL}/inventario`);
 
       if (!respuestaStock.ok) {
@@ -203,8 +207,6 @@ export default function CarritoUserScreen() {
       }
 
       const datosStock = await respuestaStock.json();
-
-      // Acepta las dos estructuras de respuesta del servidor.
       const inventarioActual = datosStock.productos || datosStock;
 
       for (const item of cart) {
@@ -274,7 +276,7 @@ export default function CarritoUserScreen() {
     if (numero.replace(/\s/g, '').length !== 16) {
       Alert.alert(
         'Número incorrecto',
-        'El número de tarjeta debe tener 16 dígitos.'
+        'El número debe tener 16 dígitos.'
       );
       return;
     }
@@ -290,7 +292,7 @@ export default function CarritoUserScreen() {
     if (cvv.length !== 3) {
       Alert.alert(
         'CVV incorrecto',
-        'El código de seguridad debe tener 3 dígitos.'
+        'El código debe tener 3 dígitos.'
       );
       return;
     }
@@ -300,6 +302,7 @@ export default function CarritoUserScreen() {
         'Carrito vacío',
         'No tienes productos para comprar.'
       );
+
       setPantalla('carrito');
       return;
     }
@@ -309,7 +312,7 @@ export default function CarritoUserScreen() {
     if (!tarjeta) {
       Alert.alert(
         'Pago rechazado',
-        'Los datos no coinciden con ninguna de las tres tarjetas de demostración. Verifica el titular, número, vencimiento y CVV.'
+        'Los datos no coinciden con ninguna tarjeta de demostración.'
       );
       return;
     }
@@ -318,7 +321,7 @@ export default function CarritoUserScreen() {
 
     Alert.alert(
       'Pago aprobado',
-      'La tarjeta de demostración fue validada correctamente. Se enviará tu pedido a SMARTGO.',
+      'La tarjeta de demostración fue validada. Se enviará tu pedido a SMARTGO.',
       [
         {
           text: 'Continuar',
@@ -329,473 +332,560 @@ export default function CarritoUserScreen() {
   };
 
   // ============================================
-  // PANTALLA DEL CARRITO
+  // ENCABEZADO
   // ============================================
 
-  const renderCarrito = () => (
-    <>
-      <View style={styles.header}>
-        <Text style={styles.headerSmall}>SMARTGO</Text>
-        <Text style={styles.title}>Mi carrito</Text>
-        <Text style={styles.subtitle}>
-          Tus bebidas seleccionadas.
-        </Text>
-      </View>
-
-      {cart.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <MaterialIcons
-            name="shopping-cart"
-            size={60}
-            color="#94A3B8"
-          />
-
-          <Text style={styles.emptyTitle}>
-            Tu carrito está vacío
-          </Text>
-
-          <Text style={styles.emptyText}>
-            Agrega tus bebidas favoritas desde la sección Compras.
-          </Text>
-        </View>
-      ) : (
-        <>
-          {cart.map((item) => (
-            <View style={styles.productCard} key={item.producto}>
-              <View style={styles.productIcon}>
-                <MaterialIcons
-                  name="local-drink"
-                  size={32}
-                  color={
-                    item.nombre === 'Pepsi'
-                      ? '#0756A5'
-                      : '#C51F2B'
-                  }
-                />
-              </View>
-
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>
-                  {item.nombre}
-                </Text>
-
-                <Text style={styles.presentation}>
-                  {item.presentacion}
-                </Text>
-
-                <Text style={styles.price}>
-                  Q{(item.precio * item.cantidad).toFixed(2)}
-                </Text>
-
-                <Text style={styles.unitPrice}>
-                  Q{item.precio.toFixed(2)} por unidad
-                </Text>
-              </View>
-
-              <View style={styles.controls}>
-                <View style={styles.quantityControl}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      cambiarCantidad(
-                        item.producto,
-                        item.cantidad - 1
-                      )
-                    }
-                    disabled={item.cantidad <= 1}
-                  >
-                    <MaterialIcons
-                      name="remove"
-                      size={20}
-                      color={
-                        item.cantidad <= 1
-                          ? '#CBD5E1'
-                          : '#334155'
-                      }
-                    />
-                  </TouchableOpacity>
-
-                  <Text style={styles.quantity}>
-                    {item.cantidad}
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      cambiarCantidad(
-                        item.producto,
-                        item.cantidad + 1
-                      )
-                    }
-                    disabled={item.cantidad >= 4}
-                  >
-                    <MaterialIcons
-                      name="add"
-                      size={20}
-                      color={
-                        item.cantidad >= 4
-                          ? '#CBD5E1'
-                          : '#334155'
-                      }
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => removeFromCart(item.producto)}
-                  style={styles.removeButton}
-                >
-                  <MaterialIcons
-                    name="delete-outline"
-                    size={22}
-                    color="#DC2626"
-                  />
-
-                  <Text style={styles.removeText}>
-                    Eliminar
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-
-          <View style={styles.summaryCard}>
-            <Text style={styles.sectionTitle}>
-              Resumen de compra
-            </Text>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Productos
-              </Text>
-
-              <Text style={styles.summaryValue}>
-                {cart.reduce(
-                  (suma, item) => suma + item.cantidad,
-                  0
-                )}
-              </Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Subtotal
-              </Text>
-
-              <Text style={styles.summaryValue}>
-                Q{total.toFixed(2)}
-              </Text>
-            </View>
-
-            <View style={styles.separator} />
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-
-              <Text style={styles.totalPrice}>
-                Q{total.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.payButton}
-            onPress={() => setPantalla('pago')}
-          >
-            <MaterialIcons
-              name="lock"
-              size={21}
-              color="#FFFFFF"
-            />
-
-            <Text style={styles.payButtonText}>
-              Proceder al pago
-            </Text>
-
-            <MaterialIcons
-              name="arrow-forward"
-              size={21}
-              color="#FFFFFF"
-            />
-          </TouchableOpacity>
-        </>
-      )}
-    </>
-  );
-
-  // ============================================
-  // PANTALLA DE PAGO
-  // ============================================
-
-  const renderPago = () => (
-    <>
-      <View style={styles.header}>
+  const renderHeader = (titulo, subtitulo, volver = false) => (
+    <View style={styles.header}>
+      {volver && (
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setPantalla('carrito')}
         >
           <MaterialIcons
             name="arrow-back"
-            size={22}
-            color="#172033"
+            size={21}
+            color="#172B4D"
           />
-
-          <Text style={styles.backText}>
-            Volver al carrito
-          </Text>
+          <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
+      )}
 
-        <Text style={styles.headerSmall}>
-          SMARTGO CHECKOUT
-        </Text>
+      <View style={styles.brandRow}>
+        <Image source={MiLogo} style={styles.logo} />
 
-        <Text style={styles.title}>
-          Método de pago
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Completa los datos de tu tarjeta de demostración.
-        </Text>
-      </View>
-
-      <View style={styles.paymentCard}>
-        <View style={styles.paymentCardHeader}>
-          <MaterialIcons
-            name="credit-card"
-            size={25}
-            color="#FFFFFF"
-          />
-
-          <Text style={styles.paymentCardBrand}>
-            SMARTGO PAY
-          </Text>
-        </View>
-
-        <Text style={styles.cardNumberPreview}>
-          {numero || '•••• •••• •••• ••••'}
-        </Text>
-
-        <View style={styles.cardPreviewBottom}>
-          <View>
-            <Text style={styles.cardPreviewLabel}>
-              TITULAR
-            </Text>
-
-            <Text style={styles.cardPreviewValue}>
-              {titular || 'NOMBRE DEL TITULAR'}
-            </Text>
-          </View>
-
-          <View>
-            <Text style={styles.cardPreviewLabel}>
-              VENCE
-            </Text>
-
-            <Text style={styles.cardPreviewValue}>
-              {vencimiento || 'MM/AA'}
-            </Text>
-          </View>
+        <View>
+          <Text style={styles.brandName}>SMARTGO</Text>
+          
         </View>
       </View>
 
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitle}>
-          Información de tarjeta
-        </Text>
+      <Text style={styles.title}>{titulo}</Text>
+      <Text style={styles.subtitle}>{subtitulo}</Text>
+    </View>
+  );
 
-        <Text style={styles.inputLabel}>
-          Nombre del titular
-        </Text>
+  // ============================================
+  // CARRITO
+  // ============================================
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre como aparece en la tarjeta"
-          placeholderTextColor="#94A3B8"
-          value={titular}
-          onChangeText={(valor) =>
-            setTitular(valor.toUpperCase())
-          }
-          autoCapitalize="characters"
-        />
+  const renderCarrito = () => (
+    <>
+      {renderHeader(
+        'Mi carrito',
+        'Revisa tus bebidas antes de continuar.'
+      )}
 
-        <Text style={styles.inputLabel}>
-          Número de tarjeta
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="0000 0000 0000 0000"
-          placeholderTextColor="#94A3B8"
-          keyboardType="number-pad"
-          value={numero}
-          onChangeText={(valor) =>
-            setNumero(formatearNumero(valor))
-          }
-          maxLength={19}
-        />
-
-        <View style={styles.inputRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.inputLabel}>
-              Vencimiento
+      <View style={styles.content}>
+        <View style={styles.sectionHeading}>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Tus productos
             </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="MM/AA"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-              value={vencimiento}
-              onChangeText={(valor) =>
-                setVencimiento(
-                  formatearVencimiento(valor)
-                )
-              }
-              maxLength={5}
-            />
+            <Text style={styles.sectionSubtitle}>
+              {cart.reduce(
+                (suma, item) => suma + item.cantidad,
+                0
+              )} bebidas seleccionadas
+            </Text>
           </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={styles.inputLabel}>
-              CVV
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="123"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-              value={cvv}
-              onChangeText={(valor) =>
-                setCvv(
-                  valor.replace(/\D/g, '').slice(0, 3)
-                )
-              }
-              maxLength={3}
-              secureTextEntry
+          <View style={styles.cartBadge}>
+            <MaterialIcons
+              name="shopping-cart"
+              size={19}
+              color="#FFFFFF"
             />
           </View>
         </View>
 
-        <View style={styles.securityNotice}>
-          <MaterialIcons
-            name="verified-user"
-            size={20}
-            color="#15803D"
-          />
-
-          <Text style={styles.securityText}>
-            Pago de demostración. No se realiza ningún cobro bancario.
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.demoContainer}>
-        <Text style={styles.sectionTitle}>
-          Tarjetas de prueba disponibles
-        </Text>
-
-        <Text style={styles.demoSubtitle}>
-          Selecciona una tarjeta para rellenar los datos automáticamente.
-        </Text>
-
-        {TARJETAS_DEMO.map((tarjeta, index) => (
-          <TouchableOpacity
-            key={tarjeta.numero}
-            style={styles.demoCard}
-            onPress={() => seleccionarTarjeta(tarjeta)}
-          >
-            <View
-              style={[
-                styles.demoCardIcon,
-                { backgroundColor: tarjeta.color },
-              ]}
-            >
+        {cart.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}>
               <MaterialIcons
-                name="credit-card"
-                size={22}
-                color="#FFFFFF"
+                name="shopping-cart"
+                size={48}
+                color="#14569A"
               />
             </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.demoCardName}>
-                Tarjeta de prueba {index + 1}
-              </Text>
+            <Text style={styles.emptyTitle}>
+              Tu carrito está vacío
+            </Text>
 
-              <Text style={styles.demoCardNumber}>
-                {tarjeta.numero}
-              </Text>
-
-              <Text style={styles.demoCardDetails}>
-                {tarjeta.titular} · {tarjeta.vencimiento}
-              </Text>
-
-              <Text style={styles.demoCardDetails}>
-                CVV: {tarjeta.cvv}
-              </Text>
-            </View>
-
-            <MaterialIcons
-              name="add-circle-outline"
-              size={23}
-              color="#0756A5"
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.summaryCard}>
-        <Text style={styles.sectionTitle}>
-          Total de tu compra
-        </Text>
-
-        <View style={styles.summaryRow}>
-          <Text style={styles.totalLabel}>
-            Total a pagar
-          </Text>
-
-          <Text style={styles.totalPrice}>
-            Q{total.toFixed(2)}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={[
-          styles.payButton,
-          procesando && { opacity: 0.7 },
-        ]}
-        onPress={procesarPago}
-        disabled={procesando}
-      >
-        {procesando ? (
-          <ActivityIndicator color="#FFFFFF" />
+            <Text style={styles.emptyText}>
+              Todavía no has agregado bebidas.
+              Visita la sección Compras para elegir tus favoritas.
+            </Text>
+          </View>
         ) : (
           <>
-            <MaterialIcons
-              name="lock"
-              size={21}
-              color="#FFFFFF"
-            />
+            {cart.map((item) => (
+              <View
+                style={styles.productCard}
+                key={item.producto}
+              >
+                <View
+                  style={[
+                    styles.productIcon,
+                    {
+                      backgroundColor:
+                        item.nombre === 'Pepsi'
+                          ? '#EAF2FC'
+                          : '#FDEEEF',
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="local-drink"
+                    size={34}
+                    color={
+                      item.nombre === 'Pepsi'
+                        ? '#0756A5'
+                        : '#C51F2B'
+                    }
+                  />
+                </View>
 
-            <Text style={styles.payButtonText}>
-              Pagar Q{total.toFixed(2)}
-            </Text>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>
+                    {item.nombre}
+                  </Text>
+
+                  <Text style={styles.presentation}>
+                    {item.presentacion}
+                  </Text>
+
+                  <Text style={styles.unitPrice}>
+                    Q{Number(item.precio).toFixed(2)} por unidad
+                  </Text>
+
+                  <Text style={styles.price}>
+                    Q{(item.precio * item.cantidad).toFixed(2)}
+                  </Text>
+                </View>
+
+                <View style={styles.controls}>
+                  <View style={styles.quantityControl}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        cambiarCantidad(
+                          item.producto,
+                          item.cantidad - 1
+                        )
+                      }
+                      disabled={item.cantidad <= 1}
+                    >
+                      <MaterialIcons
+                        name="remove-circle-outline"
+                        size={23}
+                        color={
+                          item.cantidad <= 1
+                            ? '#CBD5E1'
+                            : '#14569A'
+                        }
+                      />
+                    </TouchableOpacity>
+
+                    <Text style={styles.quantity}>
+                      {item.cantidad}
+                    </Text>
+
+                    <TouchableOpacity
+                      onPress={() =>
+                        cambiarCantidad(
+                          item.producto,
+                          item.cantidad + 1
+                        )
+                      }
+                      disabled={item.cantidad >= 4}
+                    >
+                      <MaterialIcons
+                        name="add-circle"
+                        size={23}
+                        color={
+                          item.cantidad >= 4
+                            ? '#CBD5E1'
+                            : '#14569A'
+                        }
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      removeFromCart(item.producto)
+                    }
+                    style={styles.removeButton}
+                  >
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={18}
+                      color="#DC2626"
+                    />
+
+                    <Text style={styles.removeText}>
+                      Quitar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryHeader}>
+                <MaterialIcons
+                  name="receipt-long"
+                  size={21}
+                  color="#14569A"
+                />
+
+                <Text style={styles.sectionTitle}>
+                  Resumen de compra
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Cantidad de bebidas
+                </Text>
+
+                <Text style={styles.summaryValue}>
+                  {cart.reduce(
+                    (suma, item) => suma + item.cantidad,
+                    0
+                  )}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Subtotal
+                </Text>
+
+                <Text style={styles.summaryValue}>
+                  Q{total.toFixed(2)}
+                </Text>
+              </View>
+
+              <View style={styles.separator} />
+
+              <View style={styles.totalRow}>
+                <View>
+                  <Text style={styles.totalLabel}>
+                    Total
+                  </Text>
+                  <Text style={styles.totalCaption}>
+                    Pago de demostración
+                  </Text>
+                </View>
+
+                <Text style={styles.totalPrice}>
+                  Q{total.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.payButton}
+              onPress={() => setPantalla('pago')}
+            >
+              <MaterialIcons
+                name="lock"
+                size={20}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.payButtonText}>
+                Continuar al pago
+              </Text>
+
+              <MaterialIcons
+                name="arrow-forward"
+                size={21}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+
+            <View style={styles.secureFooter}>
+              <MaterialIcons
+                name="verified-user"
+                size={17}
+                color="#64748B"
+              />
+
+              <Text style={styles.secureFooterText}>
+                Compra de demostración SMARTGO
+              </Text>
+            </View>
           </>
         )}
-      </TouchableOpacity>
+      </View>
     </>
   );
 
   // ============================================
-  // PANTALLA DE SEGUIMIENTO
+  // PAGO
+  // ============================================
+
+  const renderPago = () => (
+    <>
+      {renderHeader(
+        'Método de pago',
+        'Completa los datos de tu tarjeta.',
+        true
+      )}
+
+      <View style={styles.content}>
+        <View style={styles.paymentCard}>
+          <View style={styles.paymentCardHeader}>
+            <Text style={styles.paymentCardBrand}>
+              SMARTGO PAY
+            </Text>
+
+            <MaterialIcons
+              name="contactless"
+              size={27}
+              color="#FFFFFF"
+            />
+          </View>
+
+          <MaterialIcons
+            name="credit-card"
+            size={35}
+            color="#D7E6F8"
+          />
+
+          <Text style={styles.cardNumberPreview}>
+            {numero || '•••• •••• •••• ••••'}
+          </Text>
+
+          <View style={styles.cardPreviewBottom}>
+            <View>
+              <Text style={styles.cardPreviewLabel}>
+                TITULAR
+              </Text>
+
+              <Text style={styles.cardPreviewValue}>
+                {titular || 'NOMBRE DEL TITULAR'}
+              </Text>
+            </View>
+
+            <View>
+              <Text style={styles.cardPreviewLabel}>
+                VENCE
+              </Text>
+
+              <Text style={styles.cardPreviewValue}>
+                {vencimiento || 'MM/AA'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.sectionTitle}>
+            Información de tarjeta
+          </Text>
+
+          <Text style={styles.inputLabel}>
+            Nombre del titular
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre del titular"
+            placeholderTextColor="#94A3B8"
+            value={titular}
+            onChangeText={(valor) =>
+              setTitular(valor.toUpperCase())
+            }
+            autoCapitalize="characters"
+          />
+
+          <Text style={styles.inputLabel}>
+            Número de tarjeta
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="0000 0000 0000 0000"
+            placeholderTextColor="#94A3B8"
+            keyboardType="number-pad"
+            value={numero}
+            onChangeText={(valor) =>
+              setNumero(formatearNumero(valor))
+            }
+            maxLength={19}
+          />
+
+          <View style={styles.inputRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>
+                Vencimiento
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="MM/AA"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                value={vencimiento}
+                onChangeText={(valor) =>
+                  setVencimiento(
+                    formatearVencimiento(valor)
+                  )
+                }
+                maxLength={5}
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>
+                CVV
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="123"
+                placeholderTextColor="#94A3B8"
+                keyboardType="number-pad"
+                value={cvv}
+                onChangeText={(valor) =>
+                  setCvv(
+                    valor.replace(/\D/g, '').slice(0, 3)
+                  )
+                }
+                maxLength={3}
+                secureTextEntry
+              />
+            </View>
+          </View>
+
+          <View style={styles.securityNotice}>
+            <MaterialIcons
+              name="verified-user"
+              size={20}
+              color="#15803D"
+            />
+
+            <Text style={styles.securityText}>
+              Pago de demostración. No se realiza ningún cobro bancario.
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.demoContainer}>
+          <Text style={styles.sectionTitle}>
+            Tarjetas de prueba
+          </Text>
+
+          <Text style={styles.demoSubtitle}>
+            Selecciona una tarjeta ficticia para completar los campos.
+          </Text>
+
+          {TARJETAS_DEMO.map((tarjeta, index) => (
+            <TouchableOpacity
+              key={tarjeta.numero}
+              style={styles.demoCard}
+              onPress={() => seleccionarTarjeta(tarjeta)}
+            >
+              <View
+                style={[
+                  styles.demoCardIcon,
+                  { backgroundColor: tarjeta.color },
+                ]}
+              >
+                <MaterialIcons
+                  name="credit-card"
+                  size={21}
+                  color="#FFFFFF"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.demoCardName}>
+                  Tarjeta de prueba {index + 1}
+                </Text>
+
+                <Text style={styles.demoCardNumber}>
+                  {tarjeta.numero}
+                </Text>
+
+                <Text style={styles.demoCardDetails}>
+                  {tarjeta.titular} · {tarjeta.vencimiento}
+                </Text>
+
+                <Text style={styles.demoCardDetails}>
+                  CVV: {tarjeta.cvv}
+                </Text>
+              </View>
+
+              <MaterialIcons
+                name="add-circle-outline"
+                size={23}
+                color="#14569A"
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.sectionTitle}>
+            Total de tu compra
+          </Text>
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>
+              Total a pagar
+            </Text>
+
+            <Text style={styles.totalPrice}>
+              Q{total.toFixed(2)}
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.payButton,
+            procesando && { opacity: 0.7 },
+          ]}
+          onPress={procesarPago}
+          disabled={procesando}
+        >
+          {procesando ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <MaterialIcons
+                name="lock"
+                size={20}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.payButtonText}>
+                Confirmar pago · Q{total.toFixed(2)}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  // ============================================
+  // SEGUIMIENTO
   // ============================================
 
   const renderSeguimiento = () => (
     <View style={styles.resultCard}>
-      <ActivityIndicator
-        size="large"
-        color="#C51F2B"
-      />
+      <View style={styles.loadingCircle}>
+        <ActivityIndicator
+          size="large"
+          color="#C51F2B"
+        />
+      </View>
 
       <Text style={styles.resultTitle}>
         Preparando tu pedido
@@ -803,27 +893,47 @@ export default function CarritoUserScreen() {
 
       <Text style={styles.resultMessage}>
         {estadoPedido?.mensaje ||
-          'Esperando respuesta de SMARTGO...'}
+          'SMARTGO está procesando tu solicitud.'}
       </Text>
+
+      <View style={styles.trackingLine} />
 
       {estadoPedido?.productos?.map((item) => (
         <View
           style={styles.progressItem}
           key={item.producto}
         >
-          <Text style={styles.progressName}>
-            {item.producto.replace(/_/g, ' ')}
-          </Text>
+          <View style={styles.progressIcon}>
+            <MaterialIcons
+              name="local-drink"
+              size={21}
+              color="#14569A"
+            />
+          </View>
 
-          <Text style={styles.progressCount}>
-            {item.entregadas} de {item.solicitada} entregadas
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.progressName}>
+              {item.producto.replace(/_/g, ' ')}
+            </Text>
+
+            <Text style={styles.progressCount}>
+              {item.entregadas} de {item.solicitada} entregadas
+            </Text>
+          </View>
         </View>
       ))}
 
-      <Text style={styles.waitNotice}>
-        No desconectes Arduino mientras se procesa tu pedido.
-      </Text>
+      <View style={styles.waitNotice}>
+        <MaterialIcons
+          name="info-outline"
+          size={18}
+          color="#14569A"
+        />
+
+        <Text style={styles.waitNoticeText}>
+          No desconectes Arduino mientras se procesa tu pedido.
+        </Text>
+      </View>
 
       <Text style={styles.orderId}>
         Pedido: {pedidoId}
@@ -832,24 +942,36 @@ export default function CarritoUserScreen() {
   );
 
   // ============================================
-  // PANTALLA DE RESULTADO
+  // RESULTADO
   // ============================================
 
   const renderResultado = () => (
     <View style={styles.resultCard}>
-      <MaterialIcons
-        name={
-          resultadoFinal?.entregadas > 0
-            ? 'check-circle'
-            : 'info'
-        }
-        size={75}
-        color={
-          resultadoFinal?.entregadas > 0
-            ? '#15803D'
-            : '#DC2626'
-        }
-      />
+      <View
+        style={[
+          styles.resultIconCircle,
+          {
+            backgroundColor:
+              resultadoFinal?.entregadas > 0
+                ? '#DCFCE7'
+                : '#FEE2E2',
+          },
+        ]}
+      >
+        <MaterialIcons
+          name={
+            resultadoFinal?.entregadas > 0
+              ? 'check-circle'
+              : 'info'
+          }
+          size={58}
+          color={
+            resultadoFinal?.entregadas > 0
+              ? '#15803D'
+              : '#DC2626'
+          }
+        />
+      </View>
 
       <Text style={styles.resultTitle}>
         {resultadoFinal?.entregadas > 0
@@ -862,23 +984,32 @@ export default function CarritoUserScreen() {
       </Text>
 
       <View style={styles.finalSummary}>
-        <Text style={styles.finalNumber}>
-          {resultadoFinal?.entregadas || 0}
-        </Text>
+        <View style={styles.finalItem}>
+          <Text style={styles.finalNumber}>
+            {resultadoFinal?.entregadas || 0}
+          </Text>
 
-        <Text style={styles.finalLabel}>
-          Bebidas entregadas
-        </Text>
+          <Text style={styles.finalLabel}>
+            Bebidas entregadas
+          </Text>
+        </View>
 
-        <View style={styles.separator} />
+        <View style={styles.finalDivider} />
 
-        <Text style={styles.finalNumber}>
-          {resultadoFinal?.fallidas || 0}
-        </Text>
+        <View style={styles.finalItem}>
+          <Text
+            style={[
+              styles.finalNumber,
+              { color: '#DC2626' },
+            ]}
+          >
+            {resultadoFinal?.fallidas || 0}
+          </Text>
 
-        <Text style={styles.finalLabel}>
-          Bebidas no entregadas
-        </Text>
+          <Text style={styles.finalLabel}>
+            Bebidas no entregadas
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.orderId}>
@@ -916,8 +1047,16 @@ export default function CarritoUserScreen() {
   // ============================================
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={FondoAzul}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.backgroundOverlay} />
+
       <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -926,77 +1065,157 @@ export default function CarritoUserScreen() {
         {pantalla === 'seguimiento' && renderSeguimiento()}
         {pantalla === 'resultado' && renderResultado()}
 
-        <View style={{ height: 30 }} />
+        <View style={{ height: 35 }} />
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 }
 
 // ============================================
-// DISEÑO
+// ESTILOS SMARTGO
 // ============================================
 
 const styles = StyleSheet.create({
-  container: {
+  background: {
     flex: 1,
-    backgroundColor: '#EEF0F3',
+  },
+
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 31, 58, 0.38)',
+  },
+
+  scroll: {
+    flex: 1,
+  },
+
+  scrollContent: {
+    paddingTop: 12,
   },
 
   header: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 22,
-    paddingTop: 25,
-    paddingBottom: 22,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 21,
+    paddingTop: 19,
+    paddingBottom: 21,
+    borderRadius: 20,
+    elevation: 5,
   },
 
-  headerSmall: {
-    color: '#C51F2B',
-    fontWeight: 'bold',
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 15,
+  },
+
+  logo: {
+    width: 45,
+    height: 45,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+
+  brandName: {
+    color: '#172B4D',
+    fontSize: 17,
+    fontWeight: '900',
     letterSpacing: 2,
-    fontSize: 12,
-    marginTop: 8,
+  },
+
+  brandCaption: {
+    color: '#64748B',
+    fontSize: 9,
+    letterSpacing: 2,
+    marginTop: 2,
   },
 
   title: {
     color: '#172033',
     fontSize: 27,
-    fontWeight: 'bold',
-    marginTop: 7,
+    fontWeight: '900',
+    marginTop: 2,
   },
 
   subtitle: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 5,
+    lineHeight: 19,
   },
 
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginBottom: 15,
+    marginBottom: 16,
   },
 
   backText: {
     color: '#334155',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 19,
+  },
+
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 13,
+    paddingHorizontal: 3,
+  },
+
+  sectionTitle: {
+    color: '#172033',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+
+  sectionSubtitle: {
+    color: '#64748B',
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  cartBadge: {
+    width: 39,
+    height: 39,
+    borderRadius: 12,
+    backgroundColor: '#14569A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    margin: 18,
-    padding: 30,
-    borderRadius: 18,
+    padding: 28,
+    borderRadius: 19,
     alignItems: 'center',
+    marginTop: 10,
+    elevation: 3,
+  },
+
+  emptyIcon: {
+    width: 85,
+    height: 85,
+    borderRadius: 25,
+    backgroundColor: '#EAF2FC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyTitle: {
     color: '#172033',
     fontSize: 19,
-    fontWeight: 'bold',
-    marginTop: 15,
+    fontWeight: '800',
+    marginTop: 17,
   },
 
   emptyText: {
@@ -1004,24 +1223,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+    fontSize: 13,
   },
 
   productCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 14,
+    marginBottom: 12,
     padding: 14,
     borderRadius: 17,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 11,
+    elevation: 3,
   },
 
   productIcon: {
-    width: 55,
-    height: 60,
-    borderRadius: 13,
-    backgroundColor: '#F1F5F9',
+    width: 57,
+    height: 65,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1032,8 +1251,8 @@ const styles = StyleSheet.create({
 
   productName: {
     color: '#172033',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   presentation: {
@@ -1042,17 +1261,17 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  price: {
-    color: '#C51F2B',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 6,
-  },
-
   unitPrice: {
     color: '#94A3B8',
     fontSize: 10,
-    marginTop: 2,
+    marginTop: 5,
+  },
+
+  price: {
+    color: '#C51F2B',
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 4,
   },
 
   controls: {
@@ -1063,107 +1282,139 @@ const styles = StyleSheet.create({
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    width: 95,
+    justifyContent: 'space-between',
+    width: 91,
     backgroundColor: '#F1F5F9',
-    borderRadius: 9,
-    padding: 7,
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    paddingVertical: 7,
   },
 
   quantity: {
     color: '#172033',
-    fontWeight: 'bold',
+    fontWeight: '900',
+    fontSize: 14,
   },
 
   removeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    paddingVertical: 3,
   },
 
   removeText: {
     color: '#DC2626',
     fontSize: 11,
+    fontWeight: '600',
   },
 
   summaryCard: {
     backgroundColor: '#FFFFFF',
-    margin: 16,
-    marginTop: 18,
+    marginTop: 7,
     padding: 19,
-    borderRadius: 17,
+    borderRadius: 18,
+    elevation: 3,
   },
 
-  sectionTitle: {
-    color: '#172033',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 15,
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 8,
   },
 
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 7,
+    marginVertical: 8,
   },
 
   summaryLabel: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 13,
   },
 
   summaryValue: {
     color: '#172033',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
   separator: {
     height: 1,
     backgroundColor: '#E2E8F0',
-    marginVertical: 14,
+    marginVertical: 13,
+  },
+
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
   totalLabel: {
     color: '#172033',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+
+  totalCaption: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 4,
   },
 
   totalPrice: {
     color: '#C51F2B',
-    fontSize: 23,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '900',
   },
 
   payButton: {
     backgroundColor: '#C51F2B',
-    marginHorizontal: 16,
-    marginTop: 5,
-    padding: 17,
+    marginTop: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 17,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    elevation: 3,
+    elevation: 4,
   },
 
   payButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '800',
+    flex: 1,
+    textAlign: 'center',
+  },
+
+  secureFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 15,
+  },
+
+  secureFooterText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
 
   paymentCard: {
-    margin: 17,
     padding: 22,
-    borderRadius: 19,
+    borderRadius: 20,
     backgroundColor: '#172B4D',
-    minHeight: 175,
+    minHeight: 195,
     justifyContent: 'space-between',
-    elevation: 5,
+    elevation: 6,
+    marginBottom: 17,
   },
 
   paymentCardHeader: {
@@ -1174,16 +1425,16 @@ const styles = StyleSheet.create({
 
   paymentCardBrand: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '900',
     letterSpacing: 2,
     fontSize: 13,
   },
 
   cardNumberPreview: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 19,
     letterSpacing: 2,
-    marginVertical: 23,
+    marginVertical: 14,
   },
 
   cardPreviewBottom: {
@@ -1199,22 +1450,22 @@ const styles = StyleSheet.create({
 
   cardPreviewValue: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     marginTop: 5,
   },
 
   formCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
     padding: 19,
-    borderRadius: 17,
+    borderRadius: 18,
+    elevation: 3,
   },
 
   inputLabel: {
     color: '#334155',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 7,
     marginTop: 13,
   },
@@ -1224,10 +1475,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCE2EA',
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    borderRadius: 11,
     paddingHorizontal: 13,
     color: '#172033',
-    fontSize: 14,
+    fontSize: 13,
   },
 
   inputRow: {
@@ -1241,7 +1492,7 @@ const styles = StyleSheet.create({
     gap: 9,
     backgroundColor: '#F0FDF4',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 11,
     marginTop: 18,
   },
 
@@ -1253,17 +1504,17 @@ const styles = StyleSheet.create({
   },
 
   demoContainer: {
-    marginHorizontal: 16,
-    marginTop: 19,
+    marginTop: 17,
     backgroundColor: '#FFFFFF',
-    borderRadius: 17,
+    borderRadius: 18,
     padding: 17,
+    elevation: 3,
   },
 
   demoSubtitle: {
     color: '#64748B',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 17,
     marginTop: -7,
     marginBottom: 12,
   },
@@ -1272,7 +1523,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
@@ -1280,21 +1531,21 @@ const styles = StyleSheet.create({
   demoCardIcon: {
     width: 42,
     height: 42,
-    borderRadius: 10,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   demoCardName: {
     color: '#172033',
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   demoCardNumber: {
     color: '#334155',
     fontSize: 11,
-    marginTop: 3,
+    marginTop: 4,
   },
 
   demoCardDetails: {
@@ -1305,18 +1556,36 @@ const styles = StyleSheet.create({
 
   resultCard: {
     backgroundColor: '#FFFFFF',
-    margin: 17,
+    margin: 16,
     padding: 24,
-    borderRadius: 19,
+    borderRadius: 20,
     alignItems: 'center',
+    elevation: 4,
+  },
+
+  loadingCircle: {
+    width: 85,
+    height: 85,
+    borderRadius: 28,
+    backgroundColor: '#FDEEEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  resultIconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   resultTitle: {
     color: '#172033',
     fontSize: 21,
-    fontWeight: 'bold',
+    fontWeight: '900',
     textAlign: 'center',
-    marginTop: 17,
+    marginTop: 18,
   },
 
   resultMessage: {
@@ -1327,31 +1596,61 @@ const styles = StyleSheet.create({
     marginTop: 9,
   },
 
+  trackingLine: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    width: '100%',
+    marginVertical: 18,
+  },
+
   progressItem: {
     width: '100%',
     backgroundColor: '#F1F5F9',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 13,
-    marginTop: 10,
+    marginTop: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+
+  progressIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#EAF2FC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   progressName: {
     color: '#172033',
-    fontWeight: 'bold',
-    fontSize: 13,
+    fontWeight: '800',
+    fontSize: 12,
   },
 
   progressCount: {
     color: '#64748B',
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
   },
 
   waitNotice: {
-    color: '#64748B',
+    backgroundColor: '#EAF2FC',
+    width: '100%',
+    borderRadius: 11,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 19,
+  },
+
+  waitNoticeText: {
+    color: '#334155',
     fontSize: 11,
-    textAlign: 'center',
-    marginTop: 20,
+    flex: 1,
+    lineHeight: 17,
   },
 
   orderId: {
@@ -1364,21 +1663,35 @@ const styles = StyleSheet.create({
   finalSummary: {
     backgroundColor: '#F8FAFC',
     width: '100%',
-    borderRadius: 13,
+    borderRadius: 14,
     padding: 18,
-    alignItems: 'center',
     marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+
+  finalItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  finalDivider: {
+    width: 1,
+    height: 55,
+    backgroundColor: '#E2E8F0',
   },
 
   finalNumber: {
-    color: '#C51F2B',
-    fontSize: 30,
-    fontWeight: 'bold',
+    color: '#15803D',
+    fontSize: 29,
+    fontWeight: '900',
   },
 
   finalLabel: {
     color: '#64748B',
-    fontSize: 12,
-    marginTop: 3,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

@@ -11,15 +11,18 @@ import {
   Alert,
   SafeAreaView,
   Image,
+  ImageBackground,
 } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCart } from '../../context/CartContext';
 
 import Fondo_1 from '../../../assets/cocalata.png';
 import Fondo_2 from '../../../assets/cocabotella.png';
 import Fondo_3 from '../../../assets/pepsilata.png';
+
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
+import MiLogo from '../../../assets/logo.jpeg';
 
 const API_URL = 'http://192.168.1.120:3000';
 
@@ -30,7 +33,6 @@ const PRODUCTOS = [
     presentacion: 'Lata',
     precio: 8,
     imagen: Fondo_1,
-    color: '#D71920',
   },
   {
     id: 'COCA_BOTELLA',
@@ -38,7 +40,6 @@ const PRODUCTOS = [
     presentacion: 'Botella',
     precio: 12,
     imagen: Fondo_2,
-    color: '#D71920',
   },
   {
     id: 'PEPSI_LATA',
@@ -46,7 +47,6 @@ const PRODUCTOS = [
     presentacion: 'Lata',
     precio: 7,
     imagen: Fondo_3,
-    color: '#0755A5',
   },
 ];
 
@@ -214,6 +214,7 @@ export default function ComprasUserScreen({ navigation }) {
           </Text>
 
           <View style={styles.stockContainer}>
+
             <View
               style={[
                 styles.stockIndicator,
@@ -239,6 +240,7 @@ export default function ComprasUserScreen({ navigation }) {
                 ? 'Agotado'
                 : `${disponible} disponibles`}
             </Text>
+
           </View>
 
           <View style={styles.quantityContainer}>
@@ -319,159 +321,164 @@ export default function ComprasUserScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
 
-      <LinearGradient
-        colors={['#071C3B', '#123F75', '#1C5A96']}
+      <ImageBackground
+        source={FondoAzul}
         style={styles.background}
+        resizeMode="cover"
       >
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
+        <View style={styles.backgroundOverlay}>
 
-          {/* ENCABEZADO */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
 
-          <View style={styles.header}>
+            {/* ENCABEZADO */}
 
-            <View style={styles.headerTop}>
+            <View style={styles.header}>
 
-              <View style={styles.logoContainer}>
-                <MaterialIcons
-                  name="local-drink"
-                  size={27}
-                  color="#FFFFFF"
-                />
-              </View>
+              <View style={styles.headerTop}>
 
-              <Text style={styles.logoText}>
-                SMARTGO
-              </Text>
+                <View style={styles.logoImageContainer}>
+                  <Image
+                    source={MiLogo}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                  />
+                </View>
 
-              <View style={styles.headerTag}>
-                <Text style={styles.headerTagText}>
-                  VENDING
-                </Text>
-              </View>
-
-            </View>
-
-            <Text style={styles.headerTitle}>
-              ¡Elige tu bebida!
-            </Text>
-
-            <Text style={styles.headerSubtitle}>
-              Tu bebida favorita, a un solo toque.
-            </Text>
-
-            <View style={styles.headerDecoration}>
-              <View style={styles.decorationCircle} />
-              <View style={styles.decorationCircleSmall} />
-            </View>
-
-          </View>
-
-          {/* PRODUCTOS */}
-
-          <View style={styles.productsSection}>
-
-            <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>
-                Nuestros productos
-              </Text>
-
-              <Text style={styles.sectionSubtitle}>
-                Selecciona tu favorito
-              </Text>
-            </View>
-
-            {errorConexion && (
-              <View style={styles.errorContainer}>
-
-                <MaterialIcons
-                  name="wifi-off"
-                  size={20}
-                  color="#D71920"
-                />
-
-                <Text style={styles.errorText}>
-                  No hay conexión con la máquina
+                <Text style={styles.logoText}>
+                  SMARTGO
                 </Text>
 
-                <TouchableOpacity onPress={obtenerStock}>
-                  <Text style={styles.retryText}>
-                    Reintentar
+                <View style={styles.headerTag}>
+                  <Text style={styles.headerTagText}>
+                    VENDING
                   </Text>
-                </TouchableOpacity>
+                </View>
 
               </View>
-            )}
 
-            {cargando ? (
-              <View style={styles.loadingContainer}>
+              <Text style={styles.headerTitle}>
+                ¡Elige tu bebida!
+              </Text>
 
-                <ActivityIndicator
-                  size="large"
+              <Text style={styles.headerSubtitle}>
+                Tu bebida favorita, a un solo toque.
+              </Text>
+
+              <View style={styles.headerDecoration}>
+                <View style={styles.decorationCircle} />
+                <View style={styles.decorationCircleSmall} />
+              </View>
+
+            </View>
+
+            {/* PRODUCTOS */}
+
+            <View style={styles.productsSection}>
+
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionTitle}>
+                  Nuestros productos
+                </Text>
+
+                <Text style={styles.sectionSubtitle}>
+                  Selecciona tu favorito
+                </Text>
+              </View>
+
+              {errorConexion && (
+                <View style={styles.errorContainer}>
+
+                  <MaterialIcons
+                    name="wifi-off"
+                    size={20}
+                    color="#D71920"
+                  />
+
+                  <Text style={styles.errorText}>
+                    No hay conexión con la máquina
+                  </Text>
+
+                  <TouchableOpacity onPress={obtenerStock}>
+                    <Text style={styles.retryText}>
+                      Reintentar
+                    </Text>
+                  </TouchableOpacity>
+
+                </View>
+              )}
+
+              {cargando ? (
+                <View style={styles.loadingContainer}>
+
+                  <ActivityIndicator
+                    size="large"
+                    color="#FFFFFF"
+                  />
+
+                  <Text style={styles.loadingText}>
+                    Cargando productos...
+                  </Text>
+
+                </View>
+              ) : (
+                <View style={styles.productsContainer}>
+                  {PRODUCTOS.map((producto) =>
+                    renderProducto(producto)
+                  )}
+                </View>
+              )}
+
+            </View>
+
+          </ScrollView>
+
+          {/* RESUMEN DEL CARRITO */}
+
+          <View style={styles.bottomContainer}>
+
+            <View style={styles.summaryInfo}>
+
+              <View>
+                <Text style={styles.summaryLabel}>
+                  {totalProductos} productos en tu carrito
+                </Text>
+
+                <Text style={styles.summaryTotal}>
+                  Q{totalCompra.toFixed(2)}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.cartButton,
+                  totalProductos === 0 &&
+                    styles.emptyCartButton,
+                ]}
+                onPress={() => navigation.navigate('Carrito')}
+                activeOpacity={0.85}
+              >
+                <MaterialIcons
+                  name="shopping-cart"
+                  size={21}
                   color="#FFFFFF"
                 />
 
-                <Text style={styles.loadingText}>
-                  Cargando productos...
+                <Text style={styles.cartButtonText}>
+                  Ver carrito
                 </Text>
+              </TouchableOpacity>
 
-              </View>
-            ) : (
-              <View style={styles.productsContainer}>
-                {PRODUCTOS.map((producto) =>
-                  renderProducto(producto)
-                )}
-              </View>
-            )}
-
-          </View>
-
-        </ScrollView>
-
-        {/* RESUMEN DEL CARRITO */}
-
-        <View style={styles.bottomContainer}>
-
-          <View style={styles.summaryInfo}>
-
-            <View>
-              <Text style={styles.summaryLabel}>
-                {totalProductos} productos en tu carrito
-              </Text>
-
-              <Text style={styles.summaryTotal}>
-                Q{totalCompra.toFixed(2)}
-              </Text>
             </View>
-
-            <TouchableOpacity
-              style={[
-                styles.cartButton,
-                totalProductos === 0 &&
-                  styles.emptyCartButton,
-              ]}
-              onPress={() => navigation.navigate('Carrito')}
-              activeOpacity={0.85}
-            >
-              <MaterialIcons
-                name="shopping-cart"
-                size={21}
-                color="#FFFFFF"
-              />
-
-              <Text style={styles.cartButtonText}>
-                Ver carrito
-              </Text>
-            </TouchableOpacity>
 
           </View>
 
         </View>
 
-      </LinearGradient>
+      </ImageBackground>
 
     </SafeAreaView>
   );
@@ -490,6 +497,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  backgroundOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 24, 52, 0.20)',
+  },
+
   scrollContent: {
     paddingBottom: 25,
   },
@@ -498,7 +510,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 25,
-    paddingTop: 25,
+    paddingTop: 45,
     paddingBottom: 35,
     overflow: 'hidden',
     position: 'relative',
@@ -507,17 +519,23 @@ const styles = StyleSheet.create({
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
   },
 
-  logoContainer: {
-    width: 43,
-    height: 43,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  logoImageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    overflow: 'hidden',
+  },
+
+  logoImage: {
+    width: '90%',
+    height: '90%',
   },
 
   logoText: {
@@ -550,7 +568,7 @@ const styles = StyleSheet.create({
   },
 
   headerSubtitle: {
-    color: '#D8E8FA',
+    color: '#E5F0FF',
     fontSize: 14,
     marginTop: 8,
   },
@@ -586,7 +604,7 @@ const styles = StyleSheet.create({
     right: 85,
   },
 
-  // SECCIÓN DE PRODUCTOS
+  // PRODUCTOS
 
   productsSection: {
     backgroundColor: 'transparent',
@@ -605,7 +623,7 @@ const styles = StyleSheet.create({
   },
 
   sectionSubtitle: {
-    color: '#D8E8FA',
+    color: '#E5F0FF',
     fontSize: 13,
     marginTop: 4,
   },
@@ -618,24 +636,24 @@ const styles = StyleSheet.create({
   // TARJETAS
 
   productCard: {
-    width: '88%',
-    minHeight: 405,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    marginBottom: 22,
-    padding: 15,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EAF0F6',
-    elevation: 5,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+  width: '60%',
+  minHeight: 405,
+  backgroundColor: '#FFFFFF',
+  borderRadius: 22,
+  marginBottom: 35,
+  padding: 15,
+  alignItems: 'center',
+  borderWidth: 1,
+  borderColor: '#EAF0F6',
+  elevation: 5,
+  shadowColor: '#000000',
+  shadowOffset: {
+    width: 0,
+    height: 3,
   },
+  shadowOpacity: 0.12,
+  shadowRadius: 8,
+},
 
   imageContainer: {
     width: '100%',
@@ -764,7 +782,7 @@ const styles = StyleSheet.create({
   },
 
   errorContainer: {
-    width: '88%',
+    width: '82%',
     alignSelf: 'center',
     backgroundColor: '#FFF1F1',
     borderRadius: 12,
