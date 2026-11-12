@@ -259,153 +259,284 @@ export default function HistorialVentasScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+
+  // PANTALLA PRINCIPAL
+
+  container: {
+    flex: 1,
+    backgroundColor: '#06152D'
+  },
+
+  // ENCABEZADO
+
   header: {
-    backgroundColor: '#171717',
+    backgroundColor: '#0B2142',
     paddingTop: 55,
     paddingBottom: 28,
     paddingHorizontal: 22,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    borderBottomWidth: 2,
+    borderColor: '#087BCE'
   },
+
   marca: {
-    color: '#E21B23',
+    color: '#FF303B',
     fontWeight: '900',
     letterSpacing: 3,
-    fontSize: 14,
+    fontSize: 14
   },
+
   titulo: {
     color: '#FFFFFF',
     fontSize: 26,
     fontWeight: 'bold',
-    marginTop: 12,
+    marginTop: 12
   },
-  subtitulo: { color: '#BBBBBB', marginTop: 6, fontSize: 13 },
-  resumen: { padding: 16, gap: 11 },
+
+  subtitulo: {
+    color: '#A9C5E8',
+    marginTop: 6,
+    fontSize: 13
+  },
+
+  // RESUMEN DE VENTAS
+
+  resumen: {
+    padding: 16,
+    gap: 12
+  },
+
   tarjetaRoja: {
-    backgroundColor: '#D71920',
-    padding: 18,
+    backgroundColor: '#B91C2B',
+    padding: 19,
     borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    elevation: 4
   },
+
   tarjeta: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
+    backgroundColor: '#0B2142',
+    padding: 19,
     borderRadius: 15,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 3
   },
+
   etiquetaBlanca: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: 'bold',
+    letterSpacing: 0.7
   },
-  etiqueta: { color: '#777777', fontSize: 11, fontWeight: 'bold' },
+
+  etiqueta: {
+    color: '#A9C5E8',
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 0.7
+  },
+
   numeroBlanco: {
+    color: '#FFFFFF',
+    fontSize: 30,
+    fontWeight: 'bold',
+    marginTop: 7
+  },
+
+  numero: {
     color: '#FFFFFF',
     fontSize: 29,
     fontWeight: 'bold',
-    marginTop: 7,
+    marginTop: 7
   },
-  numero: {
-    color: '#171717',
+
+  ingresos: {
+    color: '#36C5FF',
     fontSize: 27,
     fontWeight: 'bold',
-    marginTop: 7,
+    marginTop: 7
   },
-  ingresos: {
-    color: '#159447',
-    fontSize: 25,
-    fontWeight: 'bold',
-    marginTop: 7,
+
+  detalleBlanco: {
+    color: '#F8D9DC',
+    fontSize: 11,
+    marginTop: 4
   },
-  detalleBlanco: { color: '#F2DADA', fontSize: 11, marginTop: 4 },
-  detalle: { color: '#888888', fontSize: 11, marginTop: 4 },
+
+  detalle: {
+    color: '#8FAAC9',
+    fontSize: 11,
+    marginTop: 4
+  },
+
+  // ENCABEZADO DE LA LISTA
+
   encabezadoLista: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
-    marginTop: 10,
-    marginBottom: 14,
+    marginTop: 15,
+    marginBottom: 16
   },
+
   tituloSeccion: {
-    color: '#171717',
+    color: '#FFFFFF',
     fontSize: 19,
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
+
   botonActualizar: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 13,
+    backgroundColor: '#0756A5',
+    paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#E3E3E3',
+    borderColor: '#168BDB'
   },
-  textoActualizar: { color: '#D71920', fontWeight: 'bold', fontSize: 12 },
+
+  textoActualizar: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12
+  },
+
+  // TARJETAS DE VENTAS
+
   venta: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B2142',
     marginHorizontal: 15,
-    marginBottom: 13,
-    padding: 15,
+    marginBottom: 14,
+    padding: 16,
     borderRadius: 15,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 4
   },
-  fila: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+
   icono: {
-    width: 42,
-    height: 42,
+    width: 45,
+    height: 45,
     borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
-  iconoTexto: { color: '#FFFFFF', fontSize: 21, fontWeight: 'bold' },
-  nombreBebida: { color: '#222222', fontSize: 14, fontWeight: 'bold' },
-  presentacion: { color: '#888888', fontSize: 12, marginTop: 3 },
-  precio: { color: '#159447', fontSize: 16, fontWeight: 'bold' },
+
+  iconoTexto: {
+    color: '#FFFFFF',
+    fontSize: 21,
+    fontWeight: 'bold'
+  },
+
+  nombreBebida: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+
+  presentacion: {
+    color: '#A9BBD2',
+    fontSize: 12,
+    marginTop: 4
+  },
+
+  precio: {
+    color: '#36C5FF',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+
   separador: {
     height: 1,
-    backgroundColor: '#EEEEEE',
-    marginVertical: 12,
+    backgroundColor: '#1B385D',
+    marginVertical: 13
   },
-  dato: { color: '#666666', fontSize: 12, marginTop: 5 },
+
+  dato: {
+    color: '#B4C5D9',
+    fontSize: 12,
+    marginTop: 6
+  },
+
+  // INFORMACIÓN DEL COMPRADOR
+
   cliente: {
-    backgroundColor: '#F6F6F6',
-    padding: 12,
+    backgroundColor: '#102D55',
+    padding: 13,
     borderRadius: 10,
-    marginTop: 13,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#1B4D80'
   },
+
   clienteTitulo: {
-    color: '#222222',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 7
   },
+
   totalCliente: {
-    color: '#D71920',
+    color: '#36C5FF',
     fontSize: 12,
     fontWeight: 'bold',
-    marginTop: 9,
+    marginTop: 10
   },
+
+  // MENSAJES DE ESTADO
+
   vacio: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B2142',
     marginHorizontal: 16,
     padding: 25,
     borderRadius: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#174477'
   },
-  vacioTitulo: { fontSize: 16, fontWeight: 'bold', color: '#222222' },
-  error: { color: '#D71920', textAlign: 'center', fontSize: 13 },
+
+  vacioTitulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF'
+  },
+
+  error: {
+    color: '#FF5252',
+    textAlign: 'center',
+    fontSize: 13
+  },
+
   botonReintentar: {
-    backgroundColor: '#D71920',
+    backgroundColor: '#C51F2B',
     padding: 12,
     borderRadius: 9,
-    marginTop: 15,
+    marginTop: 15
   },
-  textoBoton: { color: '#FFFFFF', fontWeight: 'bold' },
+
+  textoBoton: {
+    color: '#FFFFFF',
+    fontWeight: 'bold'
+  },
+
+  // PIE DE PÁGINA
+
   pie: {
     textAlign: 'center',
-    color: '#AAAAAA',
+    color: '#6F8EAF',
     fontSize: 10,
-    marginVertical: 25,
-  },
+    marginVertical: 25
+  }
+
 });

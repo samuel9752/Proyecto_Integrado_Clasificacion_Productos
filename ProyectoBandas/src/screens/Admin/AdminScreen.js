@@ -239,11 +239,12 @@ export default function AdminScreen() {
 
 
 
+
 const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: '#EEF0F3'
+    backgroundColor: '#06152D'
   },
 
   container: {
@@ -251,59 +252,65 @@ const styles = StyleSheet.create({
     paddingBottom: 35
   },
 
-
   // BIENVENIDA ADMINISTRADOR
 
   welcomeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 15,
-    marginBottom: 25,
-    paddingHorizontal: 5
+    marginTop: 20,
+    marginBottom: 30,
+    paddingHorizontal: 5,
+    paddingVertical: 25,
+    backgroundColor: '#0B2142',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#174477',
+    elevation: 5
   },
 
   welcomeTitle: {
-    fontSize: 35,
+    fontSize: 27,
     fontWeight: 'bold',
-    color: '#252B35',
+    color: '#FFFFFF',
     textAlign: 'center',
-    padding: '80'
+    paddingHorizontal: 5
   },
 
   welcomeSubtitle: {
     fontSize: 12,
-    color: '#7B8491',
-    marginTop: 8,
+    color: '#A9C5E8',
+    marginTop: 10,
     textAlign: 'center'
   },
-
 
   // PANEL ADMINISTRATIVO
 
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
+    backgroundColor: '#0B2142',
+    borderRadius: 16,
     padding: 20,
-    marginBottom: 17,
-    elevation: 2
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#173D68',
+    elevation: 5
   },
 
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 8
+    marginBottom: 10
   },
 
   cardTitle: {
-    fontSize: 16,
-    color: '#252B35',
+    fontSize: 17,
+    color: '#FFFFFF',
     fontWeight: 'bold'
   },
 
   description: {
     fontSize: 12,
-    color: '#7B8491',
+    color: '#A9BBD2',
     lineHeight: 19,
     marginBottom: 12
   },
@@ -311,48 +318,49 @@ const styles = StyleSheet.create({
   adminOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15
+    paddingVertical: 17
   },
 
   adminIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 10,
-    backgroundColor: '#F0F2F5',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#102F57',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1B4D80'
   },
 
   adminInfo: {
     flex: 1,
-    marginLeft: 13
+    marginLeft: 14
   },
 
   adminTitle: {
     fontSize: 14,
-    color: '#252B35',
+    color: '#FFFFFF',
     fontWeight: 'bold'
   },
 
   adminDescription: {
     fontSize: 11,
-    color: '#7B8491',
+    color: '#A9BBD2',
     marginTop: 5
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#E8EBEF'
+    backgroundColor: '#1B385D'
   },
-
 
   // SISTEMA DE BEBIDAS
 
   brandDescription: {
     fontSize: 12,
-    color: '#7B8491',
-    marginTop: 6,
-    marginBottom: 17
+    color: '#A9BBD2',
+    marginTop: 7,
+    marginBottom: 18
   },
 
   brandsContainer: {
@@ -362,31 +370,35 @@ const styles = StyleSheet.create({
 
   cocaCard: {
     flex: 1,
-    backgroundColor: '#FCEBEC',
-    borderRadius: 9,
-    padding: 15,
+    backgroundColor: '#351C30',
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#A92838'
   },
 
   cocaText: {
-    fontSize: 15,
-    color: '#C51F2B',
+    fontSize: 16,
+    color: '#FF3545',
     fontWeight: 'bold'
   },
 
   pepsiCard: {
     flex: 1,
-    backgroundColor: '#E9F0FA',
-    borderRadius: 9,
-    padding: 15,
+    backgroundColor: '#102D55',
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#087BCE'
   },
 
   pepsiText: {
-    fontSize: 16,
-    color: '#0756A5',
+    fontSize: 17,
+    color: '#35A9FF',
     fontWeight: 'bold'
   }
 
