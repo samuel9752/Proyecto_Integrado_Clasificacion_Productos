@@ -18,18 +18,19 @@ export default function UserBottomTabNavigator() {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
+
+          // OCULTAR NOMBRES Y DEJAR SOLO ICONOS
+          tabBarShowLabel: false,
+
           tabBarActiveTintColor: '#C51F2B',
           tabBarInactiveTintColor: '#64748B',
+
           tabBarStyle: {
             backgroundColor: '#FFFFFF',
             height: 65,
             paddingBottom: 8,
             paddingTop: 8,
             borderTopColor: '#E5E7EB',
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
           },
         }}
       >
@@ -38,7 +39,7 @@ export default function UserBottomTabNavigator() {
           component={UserScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="home" color={color} size={size} />
+              <MaterialIcons name="home" color={color} size={size + 4} />
             ),
           }}
         />
@@ -48,7 +49,7 @@ export default function UserBottomTabNavigator() {
           component={ComprasUserScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="shopping-bag" color={color} size={size} />
+              <MaterialIcons name="shopping-bag" color={color} size={size + 4} />
             ),
           }}
         />
@@ -58,7 +59,7 @@ export default function UserBottomTabNavigator() {
           component={CarritoUserScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="shopping-cart" color={color} size={size} />
+              <MaterialIcons name="shopping-cart" color={color} size={size + 4} />
             ),
           }}
         />
@@ -68,7 +69,7 @@ export default function UserBottomTabNavigator() {
           component={UserProfileScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="person" color={color} size={size} />
+              <MaterialIcons name="person" color={color} size={size + 4} />
             ),
           }}
         />
