@@ -31,56 +31,106 @@ import {
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
+// ============================================
 // FIREBASE
+// ============================================
+
 const app = getApps().length
   ? getApps()[0]
   : initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 
+// ============================================
+// PANTALLA DETECTOR
+// ============================================
+
 export default function DetectorScreen() {
 
   const [llamaDetectada, setLlamaDetectada] = useState(false);
   const [maquinaEncendida, setMaquinaEncendida] = useState(true);
+
+  const [lecturaLlama, setLecturaLlama] = useState(null);
+  const [sensorConectado, setSensorConectado] = useState(false);
+
   const [ignorada, setIgnorada] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [apagando, setApagando] = useState(false);
 
+  // ==========================================
   // ESCUCHAR CAMBIOS DE FIREBASE
+  // ==========================================
+
   useEffect(() => {
 
     const referencia = doc(db, 'maquina', 'seguridad');
 
     const unsubscribe = onSnapshot(
       referencia,
+
       (documento) => {
 
         if (documento.exists()) {
 
           const datos = documento.data();
 
-          setLlamaDetectada(datos.llamaDetectada === true);
-          setMaquinaEncendida(datos.maquinaEncendida !== false);
+          // ESTADO DE ALERTA
+          setLlamaDetectada(
+            datos.llamaDetectada === true
+          );
 
+          // ESTADO DE LA MÁQUINA
+          setMaquinaEncendida(
+            datos.maquinaEncendida !== false
+          );
+
+          // LECTURA DEL SENSOR
+          setLecturaLlama(
+            typeof datos.lecturaLlama === 'number'
+              ? datos.lecturaLlama
+              : null
+          );
+
+          // COMPROBAR SI EL SENSOR ENVÍA DATOS RECIENTES
+          const fechaActualizacion =
+            datos.sensorActualizado?.toDate
+              ? datos.sensorActualizado.toDate().getTime()
+              : null;
+
+          const conectado = fechaActualizacion !== null &&
+            Date.now() - fechaActualizacion < 10000;
+
+          setSensorConectado(conectado);
+
+          // RESTABLECER RECONOCIMIENTO CUANDO DESAPARECE LA ALERTA
           if (datos.llamaDetectada === false) {
             setIgnorada(false);
           }
 
         } else {
+
           setLlamaDetectada(false);
           setMaquinaEncendida(true);
+          setLecturaLlama(null);
+          setSensorConectado(false);
+
         }
 
         setCargando(false);
+
       },
+
       (error) => {
+
         console.log('Error al recibir datos:', error);
+
         setCargando(false);
 
         Alert.alert(
           'Error de conexión',
           'No se pudieron recibir los datos de seguridad.'
         );
+
       }
     );
 
@@ -88,22 +138,32 @@ export default function DetectorScreen() {
 
   }, []);
 
+  // ==========================================
   // RECONOCER ALERTA
+  // ==========================================
+
   const ignorarAlerta = () => {
+
     setIgnorada(true);
+
   };
 
+  // ==========================================
   // APAGAR MÁQUINA
+  // ==========================================
+
   const apagarMaquina = () => {
 
     Alert.alert(
       'Apagar máquina',
       '¿Deseas enviar la orden para apagar la máquina?',
+
       [
         {
           text: 'Cancelar',
           style: 'cancel'
         },
+
         {
           text: 'Apagar',
           style: 'destructive',
@@ -114,7 +174,11 @@ export default function DetectorScreen() {
 
               setApagando(true);
 
-              const referencia = doc(db, 'maquina', 'seguridad');
+              const referencia = doc(
+                db,
+                'maquina',
+                'seguridad'
+              );
 
               await updateDoc(referencia, {
                 apagadoSolicitado: true
@@ -135,21 +199,45 @@ export default function DetectorScreen() {
               );
 
             } finally {
+
               setApagando(false);
+
             }
+
           }
+
         }
+
       ]
+
     );
+
   };
 
-  const peligro = llamaDetectada;
-  const colorEstado = peligro ? '#EF4444' : '#22C55E';
+  // ==========================================
+  // ESTADOS VISUALES
+  // ==========================================
 
+  const peligro = llamaDetectada;
+
+  const colorEstado = peligro
+    ? '#EF4444'
+    : '#22C55E';
+
+  const colorSensor = !sensorConectado
+    ? '#F59E0B'
+    : peligro
+      ? '#EF4444'
+      : '#22C55E';
+
+  // ==========================================
   // PANTALLA DE CARGA
+  // ==========================================
+
   if (cargando) {
 
     return (
+
       <ImageBackground
         source={FondoAzul}
         style={styles.background}
@@ -159,17 +247,20 @@ export default function DetectorScreen() {
         <View style={styles.backgroundOverlay} />
 
         <SafeAreaView style={styles.loadingContainer}>
+
           <StatusBar
             backgroundColor="#06152D"
             barStyle="light-content"
           />
 
           <View style={styles.loadingLogo}>
+
             <Image
               source={MiLogo}
               style={styles.loadingLogoImage}
               resizeMode="contain"
             />
+
           </View>
 
           <ActivityIndicator
@@ -182,9 +273,16 @@ export default function DetectorScreen() {
           </Text>
 
         </SafeAreaView>
+
       </ImageBackground>
+
     );
+
   }
+
+  // ==========================================
+  // PANTALLA PRINCIPAL
+  // ==========================================
 
   return (
 
@@ -210,11 +308,13 @@ export default function DetectorScreen() {
           <View style={styles.headerTop}>
 
             <View style={styles.logoContainer}>
+
               <Image
                 source={MiLogo}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
+
             </View>
 
             <View style={styles.headerBrand}>
@@ -223,16 +323,41 @@ export default function DetectorScreen() {
                 SMART<Text style={styles.brandBlue}>GO</Text>
               </Text>
 
-             
-
             </View>
 
-            <View style={styles.onlineBadge}>
-              <View style={styles.onlineDot} />
+            <View style={[
+              styles.onlineBadge,
+              {
+                backgroundColor: sensorConectado
+                  ? '#123E3A'
+                  : '#493719'
+              }
+            ]}>
 
-              <Text style={styles.onlineText}>
-                MONITOREO
+              <View style={[
+                styles.onlineDot,
+                {
+                  backgroundColor: sensorConectado
+                    ? '#22C55E'
+                    : '#F59E0B'
+                }
+              ]} />
+
+              <Text style={[
+                styles.onlineText,
+                {
+                  color: sensorConectado
+                    ? '#86EFAC'
+                    : '#FCD34D'
+                }
+              ]}>
+
+                {sensorConectado
+                  ? 'EN LÍNEA'
+                  : 'SIN SEÑAL'}
+
               </Text>
+
             </View>
 
           </View>
@@ -244,7 +369,7 @@ export default function DetectorScreen() {
           </Text>
 
           <Text style={styles.headerDescription}>
-            Supervisión del funcionamiento y temperatura de la máquina.
+            Supervisión del sistema de detección de llama.
           </Text>
 
         </View>
@@ -260,6 +385,7 @@ export default function DetectorScreen() {
           <View style={styles.sectionHeading}>
 
             <View>
+
               <Text style={styles.sectionTitle}>
                 Detector de sobrecalentamiento
               </Text>
@@ -267,14 +393,17 @@ export default function DetectorScreen() {
               <Text style={styles.sectionSubtitle}>
                 Estado actual del sensor
               </Text>
+
             </View>
 
             <View style={styles.shieldIcon}>
+
               <MaterialIcons
                 name="verified-user"
                 size={25}
                 color="#168BFF"
               />
+
             </View>
 
           </View>
@@ -284,7 +413,9 @@ export default function DetectorScreen() {
           <View
             style={[
               styles.statusCard,
-              peligro ? styles.dangerCard : styles.normalCard
+              peligro
+                ? styles.dangerCard
+                : styles.normalCard
             ]}
           >
 
@@ -335,11 +466,15 @@ export default function DetectorScreen() {
                   { color: colorEstado }
                 ]}
               >
+
                 {peligro
-                  ? (ignorada
-                    ? 'ALERTA RECONOCIDA'
-                    : 'ALERTA ACTIVA')
+                  ? (
+                    ignorada
+                      ? 'ALERTA RECONOCIDA'
+                      : 'ALERTA ACTIVA'
+                  )
                   : 'SISTEMA NORMAL'}
+
               </Text>
 
             </View>
@@ -350,15 +485,19 @@ export default function DetectorScreen() {
                 { color: colorEstado }
               ]}
             >
+
               {peligro
-                ? '¡Sobrecalentamiento detectado!'
+                ? '¡Llama detectada!'
                 : 'Todo está bajo control'}
+
             </Text>
 
             <Text style={styles.statusDescription}>
+
               {peligro
-                ? 'El sensor ha detectado una posible condición de sobrecalentamiento. Revisa la máquina.'
-                : 'No se detecta sobrecalentamiento. El sistema de supervisión está funcionando normalmente.'}
+                ? 'El sensor ha detectado una posible presencia de llama. Revisa la máquina y verifica la situación.'
+                : 'No se detecta una condición de alerta según las lecturas actuales del sensor.'}
+
             </Text>
 
             {peligro && (
@@ -372,9 +511,11 @@ export default function DetectorScreen() {
                 />
 
                 <Text style={styles.warningText}>
+
                   {ignorada
                     ? 'La alerta fue reconocida, pero la detección continúa activa.'
-                    : 'Se requiere atención inmediata.'}
+                    : 'Se requiere revisar la máquina.'}
+
                 </Text>
 
               </View>
@@ -386,27 +527,41 @@ export default function DetectorScreen() {
           {/* INFORMACIÓN DEL SENSOR */}
 
           <Text style={styles.sectionTitleSmall}>
-            Información del sistema
+            Información del sensor
           </Text>
 
           <View style={styles.sensorCard}>
 
             <View style={styles.sensorIcon}>
+
               <MaterialIcons
                 name="sensors"
                 size={30}
                 color="#168BFF"
               />
+
             </View>
 
             <View style={styles.sensorInfo}>
 
               <Text style={styles.sensorTitle}>
-                Sensor detector de sobrecalentamiento
+                Sensor detector de llama
               </Text>
 
               <Text style={styles.sensorSubtitle}>
-                Lectura en tiempo real
+
+                {sensorConectado
+                  ? `Lectura actual: ${lecturaLlama ?? '--'}`
+                  : 'Sin comunicación con el sensor'}
+
+              </Text>
+
+              <Text style={styles.sensorConnection}>
+
+                {sensorConectado
+                  ? 'Conexión activa'
+                  : 'Verifica el Arduino y el servidor'}
+
               </Text>
 
             </View>
@@ -415,12 +570,48 @@ export default function DetectorScreen() {
               style={[
                 styles.sensorIndicator,
                 {
-                  backgroundColor: peligro
-                    ? '#EF4444'
-                    : '#22C55E'
+                  backgroundColor: colorSensor
                 }
               ]}
             />
+
+          </View>
+
+          {/* LECTURA DEL SENSOR */}
+
+          <View style={styles.readingCard}>
+
+            <View style={styles.readingHeader}>
+
+              <MaterialIcons
+                name="analytics"
+                size={23}
+                color="#168BFF"
+              />
+
+              <Text style={styles.readingTitle}>
+                Lectura analógica
+              </Text>
+
+            </View>
+
+            <View style={styles.readingValueContainer}>
+
+              <Text style={styles.readingValue}>
+                {lecturaLlama !== null
+                  ? lecturaLlama
+                  : '--'}
+              </Text>
+
+              <Text style={styles.readingUnit}>
+                / 1023
+              </Text>
+
+            </View>
+
+            <Text style={styles.readingDescription}>
+              Valor recibido desde el Arduino principal.
+            </Text>
 
           </View>
 
@@ -429,11 +620,13 @@ export default function DetectorScreen() {
           <View style={styles.machineCard}>
 
             <View style={styles.machineIcon}>
+
               <MaterialIcons
                 name="precision-manufacturing"
                 size={29}
                 color="#168BFF"
               />
+
             </View>
 
             <View style={styles.machineInfo}>
@@ -452,9 +645,11 @@ export default function DetectorScreen() {
                   }
                 ]}
               >
+
                 {maquinaEncendida
                   ? 'ENCENDIDA'
                   : 'APAGADA'}
+
               </Text>
 
             </View>
@@ -531,11 +726,13 @@ export default function DetectorScreen() {
               )}
 
               <Text style={styles.shutdownText}>
+
                 {apagando
                   ? 'Enviando solicitud...'
                   : maquinaEncendida
                     ? 'Apagar máquina'
                     : 'Máquina apagada'}
+
               </Text>
 
             </TouchableOpacity>
@@ -555,6 +752,8 @@ export default function DetectorScreen() {
             <Text style={styles.infoText}>
               Los datos se actualizan automáticamente mediante Firebase.
               Reconocer una alerta no elimina la detección ni apaga la máquina.
+              La lectura corresponde al sensor de llama, no a una medición
+              directa de temperatura.
             </Text>
 
           </View>
@@ -580,9 +779,12 @@ export default function DetectorScreen() {
     </ImageBackground>
 
   );
+
 }
 
+// ============================================
 // ESTILOS
+// ============================================
 
 const styles = StyleSheet.create({
 
@@ -684,17 +886,9 @@ const styles = StyleSheet.create({
     color: '#168BFF'
   },
 
-  brandSubtitle: {
-    color: '#A9C5E8',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 2
-  },
-
   onlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#123E3A',
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 20
@@ -704,12 +898,10 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 5,
-    backgroundColor: '#22C55E',
     marginRight: 6
   },
 
   onlineText: {
-    color: '#86EFAC',
     fontSize: 9,
     fontWeight: '900'
   },
@@ -910,10 +1102,63 @@ const styles = StyleSheet.create({
     marginTop: 5
   },
 
+  sensorConnection: {
+    color: '#86EFAC',
+    fontSize: 10,
+    marginTop: 4
+  },
+
   sensorIndicator: {
     width: 11,
     height: 11,
     borderRadius: 10
+  },
+
+  // LECTURA
+
+  readingCard: {
+    backgroundColor: 'rgba(11, 33, 66, 0.96)',
+    borderRadius: 16,
+    padding: 17,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#174477'
+  },
+
+  readingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+
+  readingTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 9
+  },
+
+  readingValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 10
+  },
+
+  readingValue: {
+    color: '#FFFFFF',
+    fontSize: 35,
+    fontWeight: '900'
+  },
+
+  readingUnit: {
+    color: '#A9C5E8',
+    fontSize: 13,
+    marginLeft: 7
+  },
+
+  readingDescription: {
+    color: '#B9CCE4',
+    fontSize: 11,
+    marginTop: 5
   },
 
   // MÁQUINA

@@ -47,14 +47,30 @@ const BAUD_RATE = 9600;
 // CONFIGURACIÓN DE LOS DOS ARDUINOS
 // ============================================
 
-const ARDUINO1_PORT = process.env.ARDUINO1_PORT || 'COM3';
-const ARDUINO2_PORT = process.env.ARDUINO2_PORT || 'COM4';
-
-// Arduino 1 controla las entregas.
-// Cambiar a 2 si los motores de entrega están conectados
-// al segundo Arduino y este recibe los comandos DISPENSE.
+const ARDUINO1_PORT = process.env.ARDUINO1_PORT || 'COM17';
+const ARDUINO2_PORT = process.env.ARDUINO2_PORT || 'COM18';
 
 const PUERTO_ENTREGA = 1;
+
+// ============================================
+// SENSOR DE LLAMA
+// ============================================
+
+// Umbral provisional para pruebas.
+// Debe calibrarse con las lecturas reales del sensor.
+
+const UMBRAL_LLAMA = Number(process.env.UMBRAL_LLAMA || 900);
+
+const LECTURAS_PARA_ALERTA = 3;
+
+let lecturaLlama = null;
+let llamaDetectada = false;
+
+let lecturasConsecutivas = 0;
+let lecturasNormales = 0;
+
+let ultimaActualizacionLlama = 0;
+let estadoLlamaGuardado = null;
 
 // ============================================
 // PRODUCTOS
@@ -153,15 +169,113 @@ async function sincronizarInventario(producto, cantidad) {
 }
 
 // ============================================
+// SENSOR DE LLAMA Y FIREBASE
+// ============================================
+
+async function procesarLecturaLlama(valorRecibido) {
+
+  const valor = Number(valorRecibido);
+
+  // Validar lectura analógica del Arduino.
+  if (
+    !Number.isFinite(valor) ||
+    valor < 0 ||
+    valor > 1023
+  ) {
+    return;
+  }
+
+  lecturaLlama = valor;
+
+  // Si el valor baja del umbral,
+  // acumular lecturas consecutivas.
+
+  if (valor <= UMBRAL_LLAMA) {
+
+    lecturasConsecutivas++;
+    lecturasNormales = 0;
+
+  } else {
+
+    lecturasNormales++;
+    lecturasConsecutivas = 0;
+
+  }
+
+  // Activar alerta después de 3 lecturas bajas.
+  if (lecturasConsecutivas >= LECTURAS_PARA_ALERTA) {
+    llamaDetectada = true;
+  }
+
+  // Restablecer alerta después de 3 lecturas normales.
+  if (lecturasNormales >= LECTURAS_PARA_ALERTA) {
+    llamaDetectada = false;
+  }
+
+  const ahora = Date.now();
+
+  const cambioEstado =
+    estadoLlamaGuardado !== llamaDetectada;
+
+  const actualizarLectura =
+    ahora - ultimaActualizacionLlama >= 2000;
+
+  // No escribir en Firebase innecesariamente.
+  if (!cambioEstado && !actualizarLectura) {
+    return;
+  }
+
+  try {
+
+    await db.collection('maquina')
+      .doc('seguridad')
+      .set({
+
+        llamaDetectada: llamaDetectada,
+
+        lecturaLlama: lecturaLlama,
+
+        sensorActualizado: FieldValue.serverTimestamp(),
+
+      }, { merge: true });
+
+    estadoLlamaGuardado = llamaDetectada;
+    ultimaActualizacionLlama = ahora;
+
+    console.log(
+      `Sensor de llama: ${lecturaLlama} | Estado: ${
+        llamaDetectada ? 'ALERTA' : 'NORMAL'
+      }`
+    );
+
+    // Enviar también el estado mediante Socket.IO.
+    io.emit('seguridad', {
+      llamaDetectada,
+      lecturaLlama,
+    });
+
+  } catch (error) {
+
+    console.error(
+      'Error actualizando seguridad en Firebase:',
+      error.message
+    );
+
+  }
+}
+
+// ============================================
 // GUARDAR VENTA
 // ============================================
 
 async function guardarVenta(producto, usuario) {
+
   const datosProducto = productos[producto];
 
   if (!datosProducto) return;
 
   try {
+
     const venta = {
       producto,
       nombre: datosProducto.nombre,
@@ -196,7 +310,9 @@ async function guardarVenta(producto, usuario) {
     });
 
   } catch (error) {
+
     console.error('Error guardando venta:', error.message);
+
   }
 }
 
@@ -205,16 +321,21 @@ async function guardarVenta(producto, usuario) {
 // ============================================
 
 function enviarEstado() {
+
   io.emit('connectionStatus', {
+
     conectado: estaConectadoArduino(),
 
     arduino1: conectadoArduino1,
+
     arduino2: conectadoArduino2,
 
     mensaje: estaConectadoArduino()
       ? 'Arduino de entregas conectado'
       : 'Arduino de entregas desconectado',
+
   });
+
 }
 
 // ============================================
@@ -222,6 +343,7 @@ function enviarEstado() {
 // ============================================
 
 function dispensarProducto(producto) {
+
   return new Promise((resolve, reject) => {
 
     const puerto = obtenerPuertoEntrega();
@@ -248,11 +370,13 @@ function dispensarProducto(producto) {
     pendiente.temporizador = setTimeout(() => {
 
       if (comandoPendiente === pendiente) {
+
         comandoPendiente = null;
 
         reject(
           new Error('Arduino no respondió a tiempo.')
         );
+
       }
 
     }, 30000);
@@ -267,11 +391,13 @@ function dispensarProducto(producto) {
         reject(
           new Error('No se pudo enviar el comando a Arduino.')
         );
+
       }
 
     });
 
   });
+
 }
 
 // ============================================
@@ -279,12 +405,16 @@ function dispensarProducto(producto) {
 // ============================================
 
 function emitirProgreso(pedido) {
+
   io.emit('pedido:progreso', {
+
     pedidoId: pedido.id,
     estado: pedido.estado,
     productos: pedido.productos,
     mensaje: pedido.mensaje,
+
   });
+
 }
 
 // ============================================
@@ -322,6 +452,7 @@ async function procesarColaPedidos() {
             item.resultados.push('SIN_EXISTENCIAS');
 
             emitirProgreso(pedido);
+
             continue;
           }
 
@@ -367,10 +498,13 @@ async function procesarColaPedidos() {
             emitirProgreso(pedido);
 
             break;
+
           }
+
         }
 
         if (detenerPedido) break;
+
       }
 
       pedido.estado = detenerPedido ? 'error' : 'completado';
@@ -382,6 +516,7 @@ async function procesarColaPedidos() {
       pedido.finalizado = new Date().toISOString();
 
       emitirProgreso(pedido);
+
     }
 
   } finally {
@@ -393,6 +528,7 @@ async function procesarColaPedidos() {
     }
 
   }
+
 }
 
 // ============================================
@@ -408,9 +544,26 @@ function procesarMensajeArduino(mensaje, origen) {
   const partes = mensaje.split(',');
   const tipo = partes[0];
 
-  // ------------------------------------------
+  // ==========================================
+  // SENSOR DE LLAMA
+  // ==========================================
+
+  if (tipo === 'LLAMA') {
+
+    // El sensor está conectado al Arduino principal.
+    if (origen === 'ARDUINO1') {
+
+      procesarLecturaLlama(partes[1]);
+
+    }
+
+    return;
+
+  }
+
+  // ==========================================
   // ARDUINO LISTO
-  // ------------------------------------------
+  // ==========================================
 
   if (tipo === 'READY') {
 
@@ -418,9 +571,9 @@ function procesarMensajeArduino(mensaje, origen) {
 
   }
 
-  // ------------------------------------------
+  // ==========================================
   // INVENTARIO
-  // ------------------------------------------
+  // ==========================================
 
   else if (tipo === 'STOCK') {
 
@@ -437,15 +590,16 @@ function procesarMensajeArduino(mensaje, origen) {
       inventario[producto] = cantidad;
 
       enviarInventario();
+
       sincronizarInventario(producto, cantidad);
 
     }
 
   }
 
-  // ------------------------------------------
+  // ==========================================
   // EVENTOS DE INVENTARIO
-  // ------------------------------------------
+  // ==========================================
 
   else if (tipo === 'EVENT') {
 
@@ -453,41 +607,50 @@ function procesarMensajeArduino(mensaje, origen) {
     const producto = partes[2];
 
     io.emit('inventoryEvent', {
+
       accion,
       producto,
+
       nombre: productos[producto]?.nombre || producto,
+
       cantidad: Number(partes[3]),
+
       arduino: origen,
+
     });
 
   }
 
-  // ------------------------------------------
+  // ==========================================
   // RESULTADO DE ENTREGA
-  // ------------------------------------------
+  // ==========================================
 
   else if (tipo === 'RESULT' && partes[1] === 'DISPENSE') {
 
     const producto = partes[2];
     const resultado = partes[3];
 
-    // Solo aceptamos resultados del Arduino
-    // configurado para realizar las entregas.
-
     if (origen !== `ARDUINO${PUERTO_ENTREGA}`) {
+
       console.log('Resultado ignorado: Arduino secundario.');
+
       return;
+
     }
 
     if (resultado === 'STARTED') {
 
       io.emit('pedido:resultado', {
+
         producto,
         resultado,
+
         mensaje: 'Arduino comenzó la entrega.',
+
       });
 
       return;
+
     }
 
     if (
@@ -498,6 +661,7 @@ function procesarMensajeArduino(mensaje, origen) {
       const pendiente = comandoPendiente;
 
       clearTimeout(pendiente.temporizador);
+
       comandoPendiente = null;
 
       pendiente.resolve(resultado);
@@ -505,8 +669,11 @@ function procesarMensajeArduino(mensaje, origen) {
     }
 
     io.emit('pedido:resultado', {
+
       producto,
+
       nombre: productos[producto]?.nombre || producto,
+
       resultado,
 
       mensaje: resultado === 'OK'
@@ -514,36 +681,47 @@ function procesarMensajeArduino(mensaje, origen) {
         : resultado === 'EMPTY'
         ? 'No hay existencias de este producto.'
         : resultado,
+
     });
 
   }
 
-  // ------------------------------------------
+  // ==========================================
   // BANDA LLENA
-  // ------------------------------------------
+  // ==========================================
 
   else if (tipo === 'FULL') {
 
     io.emit('inventoryEvent', {
+
       accion: 'FULL',
+
       producto: partes[1],
+
       nombre: productos[partes[1]]?.nombre || partes[1],
+
       mensaje: 'La banda está llena.',
+
       arduino: origen,
+
     });
 
   }
 
-  // ------------------------------------------
+  // ==========================================
   // PRODUCTO DESCONOCIDO
-  // ------------------------------------------
+  // ==========================================
 
   else if (tipo === 'UNKNOWN') {
 
     io.emit('inventoryEvent', {
+
       accion: 'UNKNOWN',
+
       mensaje: 'Envase no reconocido.',
+
       arduino: origen,
+
     });
 
   }
@@ -559,9 +737,11 @@ function conectarUnArduino(numero, puertoCOM) {
   const nombre = `ARDUINO${numero}`;
 
   const puerto = new SerialPort({
+
     path: puertoCOM,
     baudRate: BAUD_RATE,
     autoOpen: false,
+
   });
 
   const parser = puerto.pipe(
@@ -591,6 +771,7 @@ function conectarUnArduino(numero, puertoCOM) {
       enviarEstado();
 
       return;
+
     }
 
     console.log(`${nombre} conectado en ${puertoCOM}`);
@@ -637,6 +818,7 @@ function conectarUnArduino(numero, puertoCOM) {
       );
 
       comandoPendiente = null;
+
     }
 
   });
@@ -678,8 +860,10 @@ app.post('/pedido', (req, res) => {
   if (!Array.isArray(items) || items.length === 0) {
 
     return res.status(400).json({
+
       ok: false,
       mensaje: 'El carrito está vacío.',
+
     });
 
   }
@@ -690,8 +874,10 @@ app.post('/pedido', (req, res) => {
   ) {
 
     return res.status(400).json({
+
       ok: false,
       mensaje: 'No se recibió la información del usuario.',
+
     });
 
   }
@@ -699,8 +885,10 @@ app.post('/pedido', (req, res) => {
   if (!estaConectadoArduino()) {
 
     return res.status(503).json({
+
       ok: false,
       mensaje: 'Arduino de entregas no está conectado.',
+
     });
 
   }
@@ -715,8 +903,10 @@ app.post('/pedido', (req, res) => {
     if (!Object.prototype.hasOwnProperty.call(productos, producto)) {
 
       return res.status(400).json({
+
         ok: false,
         mensaje: `Producto no válido: ${producto}`,
+
       });
 
     }
@@ -728,8 +918,10 @@ app.post('/pedido', (req, res) => {
     ) {
 
       return res.status(400).json({
+
         ok: false,
         mensaje: 'Cada producto debe tener entre 1 y 4 unidades.',
+
       });
 
     }
@@ -737,48 +929,68 @@ app.post('/pedido', (req, res) => {
     if (cantidad > inventario[producto]) {
 
       return res.status(400).json({
+
         ok: false,
+
         mensaje: `No hay suficientes existencias de ${productos[producto].nombre} ${productos[producto].presentacion}.`,
+
       });
 
     }
 
     productosPedido.push({
+
       producto,
       solicitada: cantidad,
       entregadas: 0,
       fallidas: 0,
       resultados: [],
+
     });
 
   }
 
   const usuario = {
+
     uid: String(usuarioRecibido.uid),
+
     correo: String(usuarioRecibido.correo),
 
     nombre: String(
       usuarioRecibido.nombre ||
       usuarioRecibido.correo.split('@')[0]
     ),
+
   };
 
   const pedido = {
+
     id: randomUUID(),
+
     usuario,
+
     productos: productosPedido,
+
     estado: 'en_cola',
+
     mensaje: 'Tu pedido está en espera.',
+
     creado: new Date().toISOString(),
+
   };
 
   pedidos.set(pedido.id, pedido);
+
   colaPedidos.push(pedido);
 
   res.status(202).json({
+
     ok: true,
+
     pedidoId: pedido.id,
+
     mensaje: 'Pedido recibido correctamente.',
+
   });
 
   procesarColaPedidos();
@@ -796,20 +1008,30 @@ app.get('/pedido/:id', (req, res) => {
   if (!pedido) {
 
     return res.status(404).json({
+
       ok: false,
       mensaje: 'No se encontró el pedido.',
+
     });
 
   }
 
   res.json({
+
     ok: true,
+
     pedidoId: pedido.id,
+
     estado: pedido.estado,
+
     mensaje: pedido.mensaje,
+
     productos: pedido.productos,
+
     creado: pedido.creado,
+
     finalizado: pedido.finalizado || null,
+
   });
 
 });
@@ -821,14 +1043,22 @@ app.get('/pedido/:id', (req, res) => {
 app.get('/', (req, res) => {
 
   res.json({
+
     servidor: 'SMARTGO',
 
     arduino: estaConectadoArduino(),
 
     arduino1: conectadoArduino1,
+
     arduino2: conectadoArduino2,
 
     inventario,
+
+    seguridad: {
+      llamaDetectada,
+      lecturaLlama,
+    },
+
   });
 
 });
@@ -840,12 +1070,33 @@ app.get('/', (req, res) => {
 app.get('/inventario', (req, res) => {
 
   res.json({
+
     conectado: estaConectadoArduino(),
 
     arduino1: conectadoArduino1,
+
     arduino2: conectadoArduino2,
 
     productos: inventario,
+
+  });
+
+});
+
+// ============================================
+// ESTADO DE SEGURIDAD
+// ============================================
+
+app.get('/seguridad', (req, res) => {
+
+  res.json({
+
+    llamaDetectada,
+
+    lecturaLlama,
+
+    umbral: UMBRAL_LLAMA,
+
   });
 
 });
@@ -868,18 +1119,27 @@ app.get('/ventas', async (req, res) => {
       const datos = documento.data();
 
       return {
+
         id: documento.id,
+
         producto: datos.producto,
+
         nombre: datos.nombre,
+
         presentacion: datos.presentacion,
+
         precio: datos.precio,
+
         cantidad: datos.cantidad,
+
         total: datos.total,
+
         usuario: datos.usuario || null,
 
         fecha: datos.fecha
           ? datos.fecha.toDate().toISOString()
           : null,
+
       };
 
     });
@@ -891,7 +1151,9 @@ app.get('/ventas', async (req, res) => {
     console.error('Error al consultar ventas:', error.message);
 
     res.status(500).json({
+
       error: 'No se pudo obtener el historial de ventas.',
+
     });
 
   }
@@ -909,13 +1171,27 @@ io.on('connection', (socket) => {
   socket.emit('stock', { ...inventario });
 
   socket.emit('connectionStatus', {
+
     conectado: estaConectadoArduino(),
+
     arduino1: conectadoArduino1,
+
     arduino2: conectadoArduino2,
+
+  });
+
+  socket.emit('seguridad', {
+
+    llamaDetectada,
+
+    lecturaLlama,
+
   });
 
   socket.on('disconnect', () => {
+
     console.log('Aplicación desconectada:', socket.id);
+
   });
 
 });
@@ -927,18 +1203,25 @@ io.on('connection', (socket) => {
 server.listen(SERVER_PORT, '0.0.0.0', () => {
 
   console.log('');
+
   console.log('====================================');
+
   console.log('       SMARTGO - SERVIDOR');
+
   console.log('====================================');
 
   console.log(`Servidor: http://localhost:${SERVER_PORT}`);
 
   console.log(`Arduino 1: ${ARDUINO1_PORT}`);
+
   console.log(`Arduino 2: ${ARDUINO2_PORT}`);
 
   console.log(`Baudios: ${BAUD_RATE}`);
 
+  console.log(`Umbral provisional de llama: ${UMBRAL_LLAMA}`);
+
   console.log('====================================');
+
   console.log('');
 
   conectarArduino();
