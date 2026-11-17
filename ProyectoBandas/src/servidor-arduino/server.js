@@ -137,6 +137,8 @@ let comandoPendiente = null;
 // ============================================
 
 function enviarInventario() {
+  // Este formato es compatible con las pantallas
+  // que reciben datos.productos o datos directamente.
   io.emit('stock', { ...inventario });
 }
 
@@ -153,7 +155,7 @@ async function sincronizarInventario(producto, cantidad) {
       cantidad,
       capacidad: 4,
       precio: datos.precio,
-      activa: true,
+      activa: cantidad > 0,
       actualizado: FieldValue.serverTimestamp(),
     }, { merge: true });
 
@@ -166,12 +168,9 @@ async function sincronizarInventario(producto, cantidad) {
 }
 
 // ============================================
-// REGISTRAR ENTREGA Y DESCONTAR INVENTARIO
+// REGISTRAR ENTREGA CONFIRMADA
+// DESCONTAR INVENTARIO Y REGISTRAR VENTA
 // ============================================
-
-// Cada unidad de un pedido tiene un ID único.
-// El movimiento y la venta se guardan en una misma
-// transacción para evitar registros duplicados.
 
 async function registrarEntregaConfirmada(
   producto,
@@ -183,10 +182,10 @@ async function registrarEntregaConfirmada(
   const datosProducto = productos[producto];
 
   if (!datosProducto) {
-    console.error('Producto desconocido:', producto);
-    return;
+    throw new Error(`Producto desconocido: ${producto}`);
   }
 
+  // ID único por unidad entregada.
   const movimientoId =
     `${pedidoId}_${indiceItem}_${numeroUnidad}`;
 
@@ -202,141 +201,156 @@ async function registrarEntregaConfirmada(
     .collection('ventas')
     .doc(movimientoId);
 
-  const cantidadAnteriorLocal = inventario[producto];
+  let resultado;
 
-  try {
-    const resultado = await db.runTransaction(async (transaction) => {
+  for (let intento = 1; intento <= 3; intento++) {
+    try {
+      resultado = await db.runTransaction(async (transaction) => {
 
-      // Primero se realizan todas las lecturas.
-      const movimientoDoc = await transaction.get(movimientoRef);
-      const inventarioDoc = await transaction.get(inventarioRef);
+        // Primero todas las lecturas.
+        const movimientoDoc = await transaction.get(movimientoRef);
+        const inventarioDoc = await transaction.get(inventarioRef);
 
-      // Si este movimiento ya fue registrado,
-      // no se vuelve a descontar ni se duplica la venta.
-      if (movimientoDoc.exists) {
-        const datosMovimiento = movimientoDoc.data();
+        // Evitar duplicar una entrega.
+        if (movimientoDoc.exists) {
+          const movimiento = movimientoDoc.data();
+
+          return {
+            duplicado: true,
+            cantidad: Number(movimiento.cantidadRestante),
+          };
+        }
+
+        const cantidadActual = inventarioDoc.exists
+          ? Number(inventarioDoc.data().cantidad)
+          : Number(inventario[producto]);
+
+        if (
+          !Number.isInteger(cantidadActual) ||
+          cantidadActual <= 0
+        ) {
+          throw new Error(
+            `Inventario inválido o agotado para ${producto}`
+          );
+        }
+
+        const cantidadNueva = cantidadActual - 1;
+
+        const usuarioVenta = {
+          uid: usuario.uid || '',
+          nombre: usuario.nombre || 'Usuario',
+          correo: usuario.correo || '',
+        };
+
+        // Actualizar inventario.
+        transaction.set(inventarioRef, {
+          producto,
+          nombre: datosProducto.nombre,
+          presentacion: datosProducto.presentacion,
+          cantidad: cantidadNueva,
+          capacidad: 4,
+          precio: datosProducto.precio,
+          activa: cantidadNueva > 0,
+          actualizado: FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        // Registrar movimiento.
+        transaction.set(movimientoRef, {
+          id: movimientoId,
+          pedidoId,
+          producto,
+          nombre: datosProducto.nombre,
+          presentacion: datosProducto.presentacion,
+          tipo: 'VENTA',
+          cantidad: 1,
+          cantidadAnterior: cantidadActual,
+          cantidadRestante: cantidadNueva,
+          usuario: usuarioVenta,
+          fecha: FieldValue.serverTimestamp(),
+        });
+
+        // Registrar venta.
+        transaction.set(ventaRef, {
+          producto,
+          nombre: datosProducto.nombre,
+          presentacion: datosProducto.presentacion,
+          precio: datosProducto.precio,
+          cantidad: 1,
+          total: datosProducto.precio,
+          usuario: usuarioVenta,
+          pedidoId,
+          fecha: FieldValue.serverTimestamp(),
+        });
 
         return {
-          duplicado: true,
-          cantidad: datosMovimiento.cantidadRestante,
+          duplicado: false,
+          cantidad: cantidadNueva,
         };
+      });
+
+      break;
+
+    } catch (error) {
+      console.error(
+        `Error guardando entrega. Intento ${intento}/3:`,
+        error.message
+      );
+
+      if (intento === 3) {
+        throw error;
       }
 
-      const cantidadActual = inventarioDoc.exists
-        ? Number(inventarioDoc.data().cantidad)
-        : cantidadAnteriorLocal;
-
-      const cantidadNueva = Math.max(0, cantidadActual - 1);
-
-      const datosVenta = {
-        producto,
-        nombre: datosProducto.nombre,
-        presentacion: datosProducto.presentacion,
-        precio: datosProducto.precio,
-        cantidad: 1,
-        total: datosProducto.precio,
-
-        usuario: {
-          uid: usuario.uid,
-          nombre: usuario.nombre,
-          correo: usuario.correo,
-        },
-
-        pedidoId,
-        fecha: FieldValue.serverTimestamp(),
-      };
-
-      // Descontar una unidad.
-      transaction.set(inventarioRef, {
-        producto,
-        nombre: datosProducto.nombre,
-        presentacion: datosProducto.presentacion,
-        cantidad: cantidadNueva,
-        capacidad: 4,
-        precio: datosProducto.precio,
-        activa: true,
-        actualizado: FieldValue.serverTimestamp(),
-      }, { merge: true });
-
-      // Registrar el movimiento.
-      transaction.set(movimientoRef, {
-        id: movimientoId,
-        pedidoId,
-        producto,
-        tipo: 'VENTA',
-        cantidad: 1,
-        cantidadAnterior: cantidadActual,
-        cantidadRestante: cantidadNueva,
-        usuario: {
-          uid: usuario.uid,
-          nombre: usuario.nombre,
-          correo: usuario.correo,
-        },
-        fecha: FieldValue.serverTimestamp(),
-      });
-
-      // Registrar la venta con el mismo ID único.
-      transaction.set(ventaRef, datosVenta);
-
-      return {
-        duplicado: false,
-        cantidad: cantidadNueva,
-        venta: datosVenta,
-      };
-    });
-
-    // Actualizar el inventario local.
-    inventario[producto] = resultado.cantidad;
-
-    enviarInventario();
-
-    if (!resultado.duplicado) {
-      console.log(
-        `VENTA REGISTRADA: ${producto} | ` +
-        `Existencias restantes: ${resultado.cantidad}`
-      );
-
-      io.emit('venta:nueva', {
-        id: movimientoId,
-        producto,
-        nombre: datosProducto.nombre,
-        presentacion: datosProducto.presentacion,
-        precio: datosProducto.precio,
-        cantidad: 1,
-        total: datosProducto.precio,
-        usuario,
-        pedidoId,
-        fecha: new Date().toISOString(),
-      });
-
-    } else {
-      console.log(
-        'Movimiento repetido ignorado:',
-        movimientoId
+      await new Promise(resolve =>
+        setTimeout(resolve, intento * 1000)
       );
     }
+  }
 
-  } catch (error) {
-    console.error(
-      'ERROR REGISTRANDO ENTREGA EN FIREBASE:',
-      error.message
-    );
+  // Actualizar inventario en memoria.
+  inventario[producto] = resultado.cantidad;
 
-    // Arduino ya confirmó que entregó el producto.
-    // Por eso también actualizamos el inventario local
-    // aunque Firebase presente un error.
-    inventario[producto] = Math.max(
-      0,
-      cantidadAnteriorLocal - 1
-    );
+  // Actualizar las pantallas.
+  enviarInventario();
 
-    enviarInventario();
+  if (!resultado.duplicado) {
+    console.log('================================');
+    console.log('VENTA REGISTRADA CORRECTAMENTE');
+    console.log('Producto:', producto);
+    console.log('Cantidad vendida: 1');
+    console.log('Existencias restantes:', resultado.cantidad);
+    console.log('================================');
 
-    console.error(
-      'ATENCIÓN: la entrega fue confirmada, pero ' +
-      'no se pudo guardar el movimiento en Firebase.'
+    io.emit('venta:nueva', {
+      id: movimientoId,
+      producto,
+      nombre: datosProducto.nombre,
+      presentacion: datosProducto.presentacion,
+      precio: datosProducto.precio,
+      cantidad: 1,
+      total: datosProducto.precio,
+      usuario,
+      pedidoId,
+      fecha: new Date().toISOString(),
+    });
+
+    io.emit('inventoryEvent', {
+      accion: 'VENTA',
+      producto,
+      nombre: datosProducto.nombre,
+      cantidad: resultado.cantidad,
+      mensaje:
+        `Se vendió 1 ${datosProducto.presentacion} de ` +
+        `${datosProducto.nombre}. Quedan ${resultado.cantidad}.`,
+    });
+
+  } else {
+    console.log(
+      'Entrega repetida ignorada:',
+      movimientoId
     );
   }
+
+  return resultado;
 }
 
 // ============================================
@@ -558,31 +572,47 @@ async function procesarColaPedidos() {
             const resultado = await dispensarProducto(producto);
 
             if (resultado === 'OK') {
+
               // Arduino confirmó la entrega.
               item.entregadas++;
               item.resultados.push('OK');
 
-              // Descontar inventario y registrar venta.
-              await registrarEntregaConfirmada(
-                producto,
-                pedido.usuario,
-                pedido.id,
-                indiceItem,
-                unidad
-              );
+              try {
+                await registrarEntregaConfirmada(
+                  producto,
+                  pedido.usuario,
+                  pedido.id,
+                  indiceItem,
+                  unidad
+                );
+
+              } catch (error) {
+                console.error(
+                  'ERROR GUARDANDO LA VENTA:',
+                  error.message
+                );
+
+                pedido.mensaje =
+                  'Arduino entregó el producto, pero hubo un error al actualizar Firebase.';
+
+                detenerPedido = true;
+              }
 
             } else if (resultado === 'EMPTY') {
-              // No se entregó el producto.
-              // No se descuenta inventario.
+
               item.fallidas++;
               item.resultados.push('SIN_EXISTENCIAS');
 
             } else {
+
               item.fallidas++;
               item.resultados.push(resultado);
+
             }
 
             emitirProgreso(pedido);
+
+            if (detenerPedido) break;
 
           } catch (error) {
             item.fallidas++;
@@ -605,7 +635,7 @@ async function procesarColaPedidos() {
         : 'completado';
 
       pedido.mensaje = detenerPedido
-        ? 'El pedido se detuvo por un problema de comunicación con Arduino.'
+        ? 'El pedido se detuvo por un problema de comunicación o registro.'
         : 'El pedido terminó. Revisa las unidades entregadas.';
 
       pedido.finalizado = new Date().toISOString();
@@ -659,6 +689,11 @@ function procesarMensajeArduino(mensaje, origen) {
       cantidad >= 0 &&
       cantidad <= 4
     ) {
+      // IMPORTANTE:
+      // Este mensaje representa el inventario físico informado
+      // por Arduino. No debe enviarse una lectura antigua después
+      // de una venta. Arduino debe informar el stock actualizado.
+
       inventario[producto] = cantidad;
 
       enviarInventario();
@@ -1074,6 +1109,53 @@ app.get('/ventas', async (req, res) => {
 
     res.status(500).json({
       error: 'No se pudo obtener el historial de ventas.',
+    });
+  }
+});
+
+// ============================================
+// HISTORIAL DE MOVIMIENTOS
+// ============================================
+
+app.get('/movimientos', async (req, res) => {
+  try {
+    const resultado = await db
+      .collection('movimientos')
+      .orderBy('fecha', 'desc')
+      .get();
+
+    const movimientos = resultado.docs.map((documento) => {
+      const datos = documento.data();
+
+      return {
+        id: documento.id,
+        pedidoId: datos.pedidoId,
+        producto: datos.producto,
+        nombre: datos.nombre,
+        presentacion: datos.presentacion,
+        tipo: datos.tipo,
+        cantidad: datos.cantidad,
+        cantidadAnterior: datos.cantidadAnterior,
+        cantidadRestante: datos.cantidadRestante,
+        usuario: datos.usuario || null,
+
+        fecha: datos.fecha
+          ? datos.fecha.toDate().toISOString()
+          : null,
+      };
+    });
+
+    res.json(movimientos);
+
+  } catch (error) {
+    console.error(
+      'Error consultando movimientos:',
+      error.message
+    );
+
+    res.status(500).json({
+      ok: false,
+      mensaje: 'No se pudo obtener el historial de movimientos.',
     });
   }
 });

@@ -19,6 +19,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
+// ==========================================
+// CONFIGURACIÓN DEL SERVIDOR
+// ==========================================
+
 const API_URL = 'http://192.168.1.120:3000/ventas';
 
 export default function HistorialVentasScreen() {
@@ -46,9 +50,15 @@ export default function HistorialVentasScreen() {
 
       const datos = await respuesta.json();
 
-      setVentas(Array.isArray(datos) ? datos : []);
+      if (!Array.isArray(datos)) {
+        throw new Error('Formato de respuesta incorrecto');
+      }
+
+      setVentas(datos);
 
     } catch (e) {
+
+      console.log('ERROR AL CARGAR VENTAS:', e.message);
 
       setError(
         'No se pudo conectar con el servidor. Comprueba que esté encendido y que uses la IP correcta.'
@@ -63,6 +73,10 @@ export default function HistorialVentasScreen() {
 
   }, []);
 
+  // ========================================
+  // CARGAR AL ABRIR LA PANTALLA
+  // ========================================
+
   useEffect(() => {
 
     cargarVentas();
@@ -70,7 +84,7 @@ export default function HistorialVentasScreen() {
   }, [cargarVentas]);
 
   // ========================================
-  // ACTUALIZAR
+  // ACTUALIZAR HISTORIAL
   // ========================================
 
   const actualizarHistorial = () => {
@@ -84,11 +98,27 @@ export default function HistorialVentasScreen() {
   // CÁLCULOS
   // ========================================
 
+  // Utiliza el total guardado por el servidor.
+  // Si no existe, calcula precio por cantidad.
+
+  const obtenerTotalVenta = (venta) => {
+
+    const totalGuardado = Number(venta.total);
+
+    if (Number.isFinite(totalGuardado) && totalGuardado > 0) {
+      return totalGuardado;
+    }
+
+    return (
+      (Number(venta.precio) || 0) *
+      (Number(venta.cantidad) || 1)
+    );
+
+  };
+
   const totalIngresos = ventas.reduce((suma, venta) => {
 
-    return suma +
-      (Number(venta.precio) || 0) *
-      (Number(venta.cantidad) || 1);
+    return suma + obtenerTotalVenta(venta);
 
   }, 0);
 
@@ -97,6 +127,10 @@ export default function HistorialVentasScreen() {
     return suma + (Number(venta.cantidad) || 1);
 
   }, 0);
+
+  // ========================================
+  // COMPRAS POR USUARIO
+  // ========================================
 
   const comprasPorUsuario = {};
 
@@ -118,7 +152,9 @@ export default function HistorialVentasScreen() {
 
   const fechaTexto = (fecha) => {
 
-    if (!fecha) return 'Fecha no disponible';
+    if (!fecha) {
+      return 'Fecha no disponible';
+    }
 
     const valor = fecha.toDate
       ? fecha.toDate()
@@ -164,7 +200,7 @@ export default function HistorialVentasScreen() {
 
     const precioUnitario = Number(venta.precio) || 0;
 
-    const total = precioUnitario * cantidad;
+    const total = obtenerTotalVenta(venta);
 
     const esPepsi = venta.producto?.includes('PEPSI');
 
@@ -183,7 +219,9 @@ export default function HistorialVentasScreen() {
           <View
             style={[
               styles.productIcon,
-              { backgroundColor: colorProducto(venta.producto) }
+              {
+                backgroundColor: colorProducto(venta.producto),
+              },
             ]}
           >
 
@@ -348,6 +386,10 @@ export default function HistorialVentasScreen() {
 
   };
 
+  // ========================================
+  // INTERFAZ
+  // ========================================
+
   return (
 
     <ImageBackground
@@ -376,7 +418,9 @@ export default function HistorialVentasScreen() {
           }
         >
 
+          {/* ================================== */}
           {/* ENCABEZADO */}
+          {/* ================================== */}
 
           <View style={styles.header}>
 
@@ -394,7 +438,9 @@ export default function HistorialVentasScreen() {
                   SMARTGO
                 </Text>
 
-               
+                <Text style={styles.brandSubtitle}>
+                  VENDING SYSTEM
+                </Text>
 
               </View>
 
@@ -412,7 +458,9 @@ export default function HistorialVentasScreen() {
 
           </View>
 
+          {/* ================================== */}
           {/* TÍTULO */}
+          {/* ================================== */}
 
           <View style={styles.titleContainer}>
 
@@ -430,7 +478,9 @@ export default function HistorialVentasScreen() {
 
           </View>
 
+          {/* ================================== */}
           {/* RESUMEN */}
+          {/* ================================== */}
 
           <Text style={styles.sectionTitle}>
             Resumen de ventas
@@ -522,7 +572,9 @@ export default function HistorialVentasScreen() {
 
           </View>
 
+          {/* ================================== */}
           {/* LISTA DE VENTAS */}
+          {/* ================================== */}
 
           <View style={styles.listHeader}>
 
@@ -558,7 +610,9 @@ export default function HistorialVentasScreen() {
 
           </View>
 
+          {/* ================================== */}
           {/* CARGANDO */}
+          {/* ================================== */}
 
           {cargando ? (
 
@@ -598,6 +652,7 @@ export default function HistorialVentasScreen() {
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={actualizarHistorial}
+                activeOpacity={0.8}
               >
 
                 <MaterialIcons
@@ -642,6 +697,7 @@ export default function HistorialVentasScreen() {
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={actualizarHistorial}
+                activeOpacity={0.8}
               >
 
                 <MaterialIcons
@@ -674,7 +730,9 @@ export default function HistorialVentasScreen() {
 
           )}
 
+          {/* ================================== */}
           {/* PIE DE PÁGINA */}
+          {/* ================================== */}
 
           <View style={styles.footer}>
 
