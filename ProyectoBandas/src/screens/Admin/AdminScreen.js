@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Animated,
@@ -19,7 +20,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
-export default function AdminScreen() {
+export default function AdminScreen({ navigation }) {
 
   // ANIMACIÓN
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -143,8 +144,12 @@ export default function AdminScreen() {
 
         <View style={styles.card}>
 
-          {/* USUARIOS */}
-          <View style={styles.adminOption}>
+          {/* GESTIÓN DE PERFIL */}
+          <TouchableOpacity
+            style={styles.adminOption}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Profile')}
+          >
             <View style={[styles.optionIcon, styles.blueIcon]}>
               <MaterialIcons
                 name="people-alt"
@@ -155,7 +160,7 @@ export default function AdminScreen() {
 
             <View style={styles.adminInfo}>
               <Text style={styles.adminTitle}>
-                Gestión de usuarios
+                Gestión de perfil
               </Text>
 
               <Text style={styles.adminDescription}>
@@ -168,12 +173,16 @@ export default function AdminScreen() {
               size={23}
               color="#7195BB"
             />
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.divider} />
 
           {/* EXISTENCIAS */}
-          <View style={styles.adminOption}>
+          <TouchableOpacity
+            style={styles.adminOption}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Existencias')}
+          >
             <View style={[styles.optionIcon, styles.redIcon]}>
               <MaterialIcons
                 name="inventory-2"
@@ -197,12 +206,16 @@ export default function AdminScreen() {
               size={23}
               color="#7195BB"
             />
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.divider} />
 
-          {/* MÁQUINA */}
-          <View style={styles.adminOption}>
+          {/* SUPERVISIÓN DE LA MÁQUINA */}
+          <TouchableOpacity
+            style={styles.adminOption}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Sobrecalentamiento')}
+          >
             <View style={[styles.optionIcon, styles.cyanIcon]}>
               <MaterialIcons
                 name="precision-manufacturing"
@@ -213,7 +226,7 @@ export default function AdminScreen() {
 
             <View style={styles.adminInfo}>
               <Text style={styles.adminTitle}>
-                Máquina expendedora
+                Supervisión de la máquina
               </Text>
 
               <Text style={styles.adminDescription}>
@@ -226,7 +239,7 @@ export default function AdminScreen() {
               size={23}
               color="#7195BB"
             />
-          </View>
+          </TouchableOpacity>
 
         </View>
 

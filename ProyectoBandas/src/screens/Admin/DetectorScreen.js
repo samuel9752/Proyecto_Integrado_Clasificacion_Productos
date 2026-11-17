@@ -240,11 +240,11 @@ export default function DetectorScreen() {
           <View style={styles.headerDivider} />
 
           <Text style={styles.headerTitle}>
-            Sistema de seguridad
+            Supervisión de la máquina
           </Text>
 
           <Text style={styles.headerDescription}>
-            Supervisión y detección de incendios de la máquina.
+            Supervisión del funcionamiento y temperatura de la máquina.
           </Text>
 
         </View>
@@ -261,7 +261,7 @@ export default function DetectorScreen() {
 
             <View>
               <Text style={styles.sectionTitle}>
-                Detector de llama
+                Detector de sobrecalentamiento
               </Text>
 
               <Text style={styles.sectionSubtitle}>
@@ -351,14 +351,14 @@ export default function DetectorScreen() {
               ]}
             >
               {peligro
-                ? '¡Llama detectada!'
+                ? '¡Sobrecalentamiento detectado!'
                 : 'Todo está bajo control'}
             </Text>
 
             <Text style={styles.statusDescription}>
               {peligro
-                ? 'El sensor ha detectado una posible llama. Revisa la situación de la máquina.'
-                : 'No se detectan llamas. El sistema de seguridad está funcionando normalmente.'}
+                ? 'El sensor ha detectado una posible condición de sobrecalentamiento. Revisa la máquina.'
+                : 'No se detecta sobrecalentamiento. El sistema de supervisión está funcionando normalmente.'}
             </Text>
 
             {peligro && (
@@ -402,7 +402,7 @@ export default function DetectorScreen() {
             <View style={styles.sensorInfo}>
 
               <Text style={styles.sensorTitle}>
-                Sensor detector de llama
+                Sensor detector de sobrecalentamiento
               </Text>
 
               <Text style={styles.sensorSubtitle}>

@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import UserScreen from '../screens/Usuario/UserScreen';
 import ComprasUserScreen from '../screens/Usuario/ComprasUserScreen';
@@ -13,6 +13,8 @@ import { CartProvider } from '../context/CartContext';
 const Tab = createBottomTabNavigator();
 
 export default function UserBottomTabNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <CartProvider>
       <Tab.Navigator
@@ -27,8 +29,8 @@ export default function UserBottomTabNavigator() {
 
           tabBarStyle: {
             backgroundColor: '#FFFFFF',
-            height: 65,
-            paddingBottom: 8,
+            height: 65 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 8),
             paddingTop: 8,
             borderTopColor: '#E5E7EB',
           },

@@ -11,6 +11,7 @@ import {
   Image,
   ImageBackground,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -18,7 +19,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
-export default function UserScreen() {
+export default function UserScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -259,7 +260,11 @@ export default function UserScreen() {
 
           {/* INFORMACIÓN */}
 
-          <View style={styles.infoCard}>
+          <TouchableOpacity
+            style={styles.infoCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Compras')}
+          >
             <MaterialIcons
               name="local-drink"
               size={30}
@@ -281,7 +286,7 @@ export default function UserScreen() {
               size={22}
               color="#FFFFFF"
             />
-          </View>
+          </TouchableOpacity>
 
           {/* PIE DE PÁGINA */}
 

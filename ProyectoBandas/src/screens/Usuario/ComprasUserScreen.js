@@ -31,6 +31,7 @@ const PRODUCTOS = [
     id: 'COCA_LATA',
     nombre: 'Coca-Cola',
     presentacion: 'Lata',
+    descripcion: 'Bebida Coca-Cola refrescante en presentación de lata.',
     precio: 8,
     imagen: Fondo_1,
   },
@@ -38,6 +39,7 @@ const PRODUCTOS = [
     id: 'COCA_BOTELLA',
     nombre: 'Coca-Cola',
     presentacion: 'Botella',
+    descripcion: 'Coca-Cola clásica en presentación de botella.',
     precio: 12,
     imagen: Fondo_2,
   },
@@ -45,6 +47,7 @@ const PRODUCTOS = [
     id: 'PEPSI_LATA',
     nombre: 'Pepsi',
     presentacion: 'Lata',
+    descripcion: 'Pepsi refrescante en presentación de lata.',
     precio: 7,
     imagen: Fondo_3,
   },
@@ -207,6 +210,10 @@ export default function ComprasUserScreen({ navigation }) {
 
           <Text style={styles.productPresentation}>
             {producto.presentacion}
+          </Text>
+
+          <Text style={styles.productDescription}>
+            {producto.descripcion}
           </Text>
 
           <Text style={styles.productPrice}>
@@ -680,6 +687,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#222222',
     textAlign: 'center',
+  },
+
+  productDescription: {
+    color: '#64748B',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+    marginBottom: 5,
   },
 
   productPresentation: {
