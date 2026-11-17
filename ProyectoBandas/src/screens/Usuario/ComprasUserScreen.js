@@ -24,7 +24,8 @@ import Fondo_3 from '../../../assets/pepsilata.png';
 import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
-const API_URL = 'http://192.168.1.66:3000';
+// DIRECCION DEL SERVIDOR
+const API_URL = 'http://192.168.1.88:3000';
 
 const PRODUCTOS = [
   {
@@ -54,17 +55,32 @@ const PRODUCTOS = [
 ];
 
 export default function ComprasUserScreen({ navigation }) {
+
   const { addToCart, cart } = useCart();
 
-  const [stock, setStock] = useState({});
+  const [stock, setStock] = useState({
+    COCA_LATA: 0,
+    COCA_BOTELLA: 0,
+    PEPSI_LATA: 0,
+  });
+
   const [cantidades, setCantidades] = useState({});
   const [cargando, setCargando] = useState(true);
   const [errorConexion, setErrorConexion] = useState(false);
+  const [actualizando, setActualizando] = useState(false);
 
-  // CONSULTAR EXISTENCIAS
+  // ============================================
+  // CONSULTAR EXISTENCIAS EN EL SERVIDOR
+  // ============================================
 
-  const obtenerStock = async () => {
+  const obtenerStock = async (mostrarCarga = false) => {
+
     try {
+
+      if (mostrarCarga) {
+        setActualizando(true);
+      }
+
       const respuesta = await fetch(`${API_URL}/inventario`);
 
       if (!respuesta.ok) {
@@ -73,19 +89,45 @@ export default function ComprasUserScreen({ navigation }) {
 
       const datos = await respuesta.json();
 
-      setStock(datos.productos || datos || {});
+      console.log('INVENTARIO RECIBIDO:', datos);
+
+      const productos = datos.productos || {};
+
+      const nuevoStock = {
+        COCA_LATA: Math.max(0, Number(productos.COCA_LATA ?? 0)),
+        COCA_BOTELLA: Math.max(0, Number(productos.COCA_BOTELLA ?? 0)),
+        PEPSI_LATA: Math.max(0, Number(productos.PEPSI_LATA ?? 0)),
+      };
+
+      if (
+        !Object.values(nuevoStock).every(Number.isFinite)
+      ) {
+        throw new Error('El inventario recibido no es válido');
+      }
+
+      setStock(nuevoStock);
       setErrorConexion(false);
 
     } catch (error) {
-      console.log('Error al consultar inventario:', error);
+
+      console.log('ERROR AL CONSULTAR INVENTARIO:', error);
+
       setErrorConexion(true);
 
     } finally {
+
       setCargando(false);
+      setActualizando(false);
+
     }
   };
 
+  // ============================================
+  // ACTUALIZAR INVENTARIO AUTOMATICAMENTE
+  // ============================================
+
   useEffect(() => {
+
     obtenerStock();
 
     const intervalo = setInterval(() => {
@@ -93,85 +135,170 @@ export default function ComprasUserScreen({ navigation }) {
     }, 5000);
 
     return () => clearInterval(intervalo);
+
   }, []);
 
-  // EXISTENCIAS DISPONIBLES
+  // ============================================
+  // OBTENER CANTIDAD DISPONIBLE
+  // ============================================
 
   const obtenerCantidadDisponible = (id) => {
-    const cantidad = Number(stock[id] ?? 0);
 
-    return Number.isFinite(cantidad)
-      ? Math.max(0, cantidad)
-      : 0;
+    const cantidad = Number(stock[id]);
+
+    if (!Number.isFinite(cantidad)) {
+      return 0;
+    }
+
+    return Math.max(0, cantidad);
+
   };
 
+  // ============================================
   // CAMBIAR CANTIDAD
+  // ============================================
 
   const cambiarCantidad = (id, cambio) => {
+
     const disponible = obtenerCantidadDisponible(id);
 
-    setCantidades((anteriores) => {
-      const actual = anteriores[id] || 1;
-      const nueva = Math.max(1, Math.min(4, actual + cambio));
+    if (disponible <= 0) return;
 
-      if (nueva > disponible) {
-        return {
-          ...anteriores,
-          [id]: Math.max(1, disponible),
-        };
-      }
+    setCantidades((anteriores) => {
+
+      const actual = anteriores[id] || 1;
+
+      const nueva = Math.max(
+        1,
+        Math.min(4, disponible, actual + cambio)
+      );
 
       return {
         ...anteriores,
         [id]: nueva,
       };
+
     });
+
   };
 
-  // AGREGAR AL CARRITO
+  // ============================================
+  // AGREGAR PRODUCTO AL CARRITO
+  // ============================================
 
-  const agregarProducto = (producto) => {
-    const disponible = obtenerCantidadDisponible(producto.id);
-    const cantidad = cantidades[producto.id] || 1;
+  const agregarProducto = async (producto) => {
 
-    if (disponible <= 0) {
-      Alert.alert(
-        'Producto agotado',
-        'Este producto no tiene existencias disponibles.'
+    try {
+
+      if (errorConexion) {
+        Alert.alert(
+          'Sin conexión',
+          'No hay conexión con la máquina. Intenta nuevamente.'
+        );
+        return;
+      }
+
+      const cantidad = cantidades[producto.id] || 1;
+
+      // Consultar inventario actualizado
+      const respuesta = await fetch(`${API_URL}/inventario`);
+
+      if (!respuesta.ok) {
+        throw new Error('No se pudo verificar el inventario');
+      }
+
+      const datos = await respuesta.json();
+
+      const inventarioActual = datos.productos || {};
+
+      const disponible = Number(
+        inventarioActual[producto.id] ?? 0
       );
-      return;
+
+      if (!Number.isFinite(disponible) || disponible < 0) {
+        throw new Error('Cantidad de inventario inválida');
+      }
+
+      // Actualizar existencias en pantalla
+      setStock({
+        COCA_LATA: Number(inventarioActual.COCA_LATA ?? 0),
+        COCA_BOTELLA: Number(inventarioActual.COCA_BOTELLA ?? 0),
+        PEPSI_LATA: Number(inventarioActual.PEPSI_LATA ?? 0),
+      });
+
+      setErrorConexion(false);
+
+      // Verificar si hay existencias
+      if (disponible <= 0) {
+
+        Alert.alert(
+          'Producto agotado',
+          'Este producto ya no tiene existencias disponibles.'
+        );
+
+        return;
+      }
+
+      // Verificar cantidad solicitada
+      if (cantidad > disponible) {
+
+        Alert.alert(
+          'Existencias insuficientes',
+          `Solamente hay ${disponible} unidades disponibles.`
+        );
+
+        setCantidades((anteriores) => ({
+          ...anteriores,
+          [producto.id]: disponible,
+        }));
+
+        return;
+      }
+
+      // Agregar al carrito
+      const resultado = addToCart(
+        producto,
+        cantidad,
+        disponible
+      );
+
+      if (resultado && resultado.ok === false) {
+
+        Alert.alert(
+          'No se pudo agregar',
+          resultado.mensaje || 'No fue posible agregar el producto.'
+        );
+
+        return;
+      }
+
+      // Reiniciar selector de cantidad
+      setCantidades((anteriores) => ({
+        ...anteriores,
+        [producto.id]: 1,
+      }));
+
+      Alert.alert(
+        'Producto agregado',
+        `${producto.nombre} ${producto.presentacion} se agregó al carrito.`
+      );
+
+    } catch (error) {
+
+      console.log('ERROR AL AGREGAR PRODUCTO:', error);
+
+      Alert.alert(
+        'Error de conexión',
+        'No fue posible verificar las existencias. Intenta nuevamente.'
+      );
+
     }
 
-    if (cantidad > disponible) {
-      Alert.alert(
-        'Existencias insuficientes',
-        `Solamente hay ${disponible} unidades disponibles.`
-      );
-      return;
-    }
-
-    const resultado = addToCart(producto, cantidad, disponible);
-
-    if (resultado && resultado.ok === false) {
-      Alert.alert(
-        'No se pudo agregar',
-        resultado.mensaje || 'No fue posible agregar el producto.'
-      );
-      return;
-    }
-
-    setCantidades((anteriores) => ({
-      ...anteriores,
-      [producto.id]: 1,
-    }));
-
-    Alert.alert(
-      'Producto agregado',
-      `${producto.nombre} ${producto.presentacion} se agregó al carrito.`
-    );
   };
 
+  // ============================================
   // TOTALES DEL CARRITO
+  // ============================================
 
   const totalProductos = cart.reduce(
     (total, item) => total + Number(item.cantidad || 0),
@@ -180,26 +307,36 @@ export default function ComprasUserScreen({ navigation }) {
 
   const totalCompra = cart.reduce(
     (total, item) =>
-      total + Number(item.precio || 0) * Number(item.cantidad || 0),
+      total +
+      Number(item.precio || 0) *
+      Number(item.cantidad || 0),
     0
   );
 
+  // ============================================
   // TARJETAS DE PRODUCTOS
+  // ============================================
 
   const renderProducto = (producto) => {
+
     const disponible = obtenerCantidadDisponible(producto.id);
+
     const cantidad = cantidades[producto.id] || 1;
+
     const agotado = disponible <= 0;
 
     return (
+
       <View style={styles.productCard} key={producto.id}>
 
         <View style={styles.imageContainer}>
+
           <Image
             source={producto.imagen}
             style={styles.productImage}
             resizeMode="contain"
           />
+
         </View>
 
         <View style={styles.productInfo}>
@@ -220,7 +357,10 @@ export default function ComprasUserScreen({ navigation }) {
             Q{producto.precio.toFixed(2)}
           </Text>
 
+          {/* EXISTENCIAS */}
+
           <View style={styles.stockContainer}>
+
             <View
               style={[
                 styles.stockIndicator,
@@ -246,7 +386,10 @@ export default function ComprasUserScreen({ navigation }) {
                 ? 'Agotado'
                 : `${disponible} disponibles`}
             </Text>
+
           </View>
+
+          {/* CANTIDAD */}
 
           <View style={styles.quantityContainer}>
 
@@ -255,6 +398,7 @@ export default function ComprasUserScreen({ navigation }) {
               onPress={() => cambiarCantidad(producto.id, -1)}
               disabled={agotado || cantidad <= 1}
             >
+
               <MaterialIcons
                 name="remove"
                 size={21}
@@ -264,6 +408,7 @@ export default function ComprasUserScreen({ navigation }) {
                     : '#252525'
                 }
               />
+
             </TouchableOpacity>
 
             <Text style={styles.quantityText}>
@@ -279,6 +424,7 @@ export default function ComprasUserScreen({ navigation }) {
                 cantidad >= disponible
               }
             >
+
               <MaterialIcons
                 name="add"
                 size={21}
@@ -290,9 +436,12 @@ export default function ComprasUserScreen({ navigation }) {
                     : '#252525'
                 }
               />
+
             </TouchableOpacity>
 
           </View>
+
+          {/* AGREGAR AL CARRITO */}
 
           <TouchableOpacity
             style={[
@@ -303,6 +452,7 @@ export default function ComprasUserScreen({ navigation }) {
             disabled={agotado}
             activeOpacity={0.85}
           >
+
             <MaterialIcons
               name="add-shopping-cart"
               size={19}
@@ -314,21 +464,29 @@ export default function ComprasUserScreen({ navigation }) {
                 ? 'No disponible'
                 : 'Agregar al carrito'}
             </Text>
+
           </TouchableOpacity>
 
         </View>
+
       </View>
+
     );
+
   };
 
+  // ============================================
   // PANTALLA PRINCIPAL
+  // ============================================
 
   return (
+
     <ImageBackground
       source={FondoAzul}
       style={styles.background}
       resizeMode="cover"
     >
+
       <View style={styles.backgroundOverlay} />
 
       <SafeAreaView style={styles.safeArea}>
@@ -346,11 +504,13 @@ export default function ComprasUserScreen({ navigation }) {
             <View style={styles.headerTop}>
 
               <View style={styles.logoImageContainer}>
+
                 <Image
                   source={MiLogo}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
+
               </View>
 
               <Text style={styles.logoText}>
@@ -358,9 +518,11 @@ export default function ComprasUserScreen({ navigation }) {
               </Text>
 
               <View style={styles.headerTag}>
+
                 <Text style={styles.headerTagText}>
                   VENDING
                 </Text>
+
               </View>
 
             </View>
@@ -385,6 +547,7 @@ export default function ComprasUserScreen({ navigation }) {
           <View style={styles.productsSection}>
 
             <View style={styles.sectionHeading}>
+
               <Text style={styles.sectionTitle}>
                 Nuestros productos
               </Text>
@@ -392,9 +555,33 @@ export default function ComprasUserScreen({ navigation }) {
               <Text style={styles.sectionSubtitle}>
                 Selecciona tu favorito
               </Text>
+
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={() => obtenerStock(true)}
+                disabled={actualizando}
+              >
+
+                <MaterialIcons
+                  name="refresh"
+                  size={17}
+                  color="#FFFFFF"
+                />
+
+                <Text style={styles.refreshText}>
+                  {actualizando
+                    ? 'Actualizando...'
+                    : 'Actualizar existencias'}
+                </Text>
+
+              </TouchableOpacity>
+
             </View>
 
+            {/* ERROR DE CONEXION */}
+
             {errorConexion && (
+
               <View style={styles.errorContainer}>
 
                 <MaterialIcons
@@ -407,16 +594,24 @@ export default function ComprasUserScreen({ navigation }) {
                   No hay conexión con la máquina
                 </Text>
 
-                <TouchableOpacity onPress={obtenerStock}>
+                <TouchableOpacity
+                  onPress={() => obtenerStock(true)}
+                >
+
                   <Text style={styles.retryText}>
                     Reintentar
                   </Text>
+
                 </TouchableOpacity>
 
               </View>
+
             )}
 
+            {/* CARGANDO */}
+
             {cargando ? (
+
               <View style={styles.loadingContainer}>
 
                 <ActivityIndicator
@@ -429,12 +624,17 @@ export default function ComprasUserScreen({ navigation }) {
                 </Text>
 
               </View>
+
             ) : (
+
               <View style={styles.productsContainer}>
+
                 {PRODUCTOS.map((producto) =>
                   renderProducto(producto)
                 )}
+
               </View>
+
             )}
 
           </View>
@@ -448,6 +648,7 @@ export default function ComprasUserScreen({ navigation }) {
           <View style={styles.summaryInfo}>
 
             <View>
+
               <Text style={styles.summaryLabel}>
                 {totalProductos} productos en tu carrito
               </Text>
@@ -455,6 +656,7 @@ export default function ComprasUserScreen({ navigation }) {
               <Text style={styles.summaryTotal}>
                 Q{totalCompra.toFixed(2)}
               </Text>
+
             </View>
 
             <TouchableOpacity
@@ -466,6 +668,7 @@ export default function ComprasUserScreen({ navigation }) {
               onPress={() => navigation.navigate('Carrito')}
               activeOpacity={0.85}
             >
+
               <MaterialIcons
                 name="shopping-cart"
                 size={21}
@@ -475,6 +678,7 @@ export default function ComprasUserScreen({ navigation }) {
               <Text style={styles.cartButtonText}>
                 Ver carrito
               </Text>
+
             </TouchableOpacity>
 
           </View>
@@ -482,8 +686,11 @@ export default function ComprasUserScreen({ navigation }) {
         </View>
 
       </SafeAreaView>
+
     </ImageBackground>
+
   );
+
 }
 
 // ============================================
@@ -635,6 +842,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    gap: 6,
+  },
+
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
   productsContainer: {
     width: '100%',
     alignItems: 'center',
@@ -695,6 +920,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: 4,
     marginBottom: 5,
+    textAlign: 'center',
   },
 
   productPresentation: {
