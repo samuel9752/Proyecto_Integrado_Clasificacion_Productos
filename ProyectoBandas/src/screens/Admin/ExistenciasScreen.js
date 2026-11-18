@@ -29,9 +29,12 @@ import MiLogo from '../../../assets/logo.jpeg';
 // CONFIGURACIÓN DEL SERVIDOR
 // ==========================================
 
-const SERVER_URL = 'http://192.168.1.66:3000';
+// Cambia esta IP si la dirección IPv4 de tu computadora es diferente.
+const SERVER_URL = 'http://192.168.1.88:3000';
 
 const CAPACIDAD_MAXIMA = 4;
+const INTERVALO_INVENTARIO = 5000;
+const INTERVALO_PEDIDO = 1500;
 
 // ==========================================
 // FIREBASE
@@ -45,6 +48,7 @@ const auth = getAuth(appFirebase);
 
 // ==========================================
 // PRODUCTOS
+// Los ID deben coincidir con Arduino y server.js.
 // ==========================================
 
 const productos = [
@@ -118,9 +122,7 @@ function BandaCard({
 
   return (
     <View style={styles.productCard}>
-
       <View style={styles.productHeader}>
-
         <View
           style={[
             styles.productIcon,
@@ -147,7 +149,6 @@ function BandaCard({
             {producto.banda}
           </Text>
         </View>
-
       </View>
 
       <View style={styles.stockRow}>
@@ -220,7 +221,6 @@ function BandaCard({
           </>
         )}
       </TouchableOpacity>
-
     </View>
   );
 }
@@ -230,7 +230,6 @@ function BandaCard({
 // ==========================================
 
 export default function ExistenciasScreen() {
-
   const [inventario, setInventario] = useState(inventarioInicial);
 
   const [conectado, setConectado] = useState(false);
@@ -253,23 +252,22 @@ export default function ExistenciasScreen() {
   const socketRef = useRef(null);
   const temporizadorRef = useRef(null);
   const pedidoIdRef = useRef(null);
+  const pedidoActivoRef = useRef(false);
+  const pantallaActivaRef = useRef(true);
 
   // ========================================
   // ACTUALIZAR INVENTARIO
   // ========================================
 
   const actualizarInventario = (datos) => {
-
     if (!datos || typeof datos !== 'object') return;
 
     const datosStock = datos.productos || datos;
 
     setInventario((anterior) => {
-
       const nuevoInventario = { ...anterior };
 
       productos.forEach((producto) => {
-
         const valor = datosStock[producto.id];
 
         if (
@@ -281,38 +279,86 @@ export default function ExistenciasScreen() {
             Math.min(CAPACIDAD_MAXIMA, Number(valor))
           );
         }
-
       });
 
       return nuevoInventario;
-
     });
+  };
 
+  // ========================================
+  // CONSULTAR INVENTARIO AL SERVIDOR
+  // ========================================
+
+  const consultarInventario = async () => {
+    try {
+      const respuesta = await fetch(
+        `${SERVER_URL}/inventario`
+      );
+
+      if (!respuesta.ok) {
+        throw new Error('No se pudo consultar el inventario');
+      }
+
+      const datos = await respuesta.json();
+
+      if (!pantallaActivaRef.current) return;
+
+      actualizarInventario(datos);
+
+      setEstadoArduino1(Boolean(datos.arduino1));
+      setEstadoArduino2(Boolean(datos.arduino2));
+      setConectado(Boolean(datos.conectado));
+
+      if (datos.conectado) {
+        setMensaje('Arduino de entregas conectado');
+      } else {
+        setMensaje('Arduino de entregas desconectado');
+      }
+
+      setConectando(false);
+    } catch (error) {
+      console.log(
+        'Error consultando inventario:',
+        error.message
+      );
+
+      if (pantallaActivaRef.current) {
+        setConectado(false);
+        setConectando(false);
+        setMensaje('No se pudo consultar el servidor');
+      }
+    }
   };
 
   // ========================================
   // CONEXIÓN CON SOCKET.IO
+  // Esta conexión se crea una sola vez.
   // ========================================
 
   useEffect(() => {
+    pantallaActivaRef.current = true;
 
     const socket = io(SERVER_URL, {
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
+      timeout: 10000,
     });
 
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      if (!pantallaActivaRef.current) return;
 
       setMensaje('Conectado al servidor SMARTGO');
       setConectando(false);
 
+      consultarInventario();
     });
 
     socket.on('disconnect', () => {
+      if (!pantallaActivaRef.current) return;
 
       setConectado(false);
       setEstadoArduino1(false);
@@ -320,27 +366,28 @@ export default function ExistenciasScreen() {
 
       setMensaje('Conexión perdida con el servidor');
       setConectando(false);
-
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (error) => {
+      console.log('Error Socket.IO:', error.message);
+
+      if (!pantallaActivaRef.current) return;
 
       setConectado(false);
       setMensaje('No se pudo conectar con el servidor');
       setConectando(false);
-
     });
 
     // ESTADO DE LOS DOS ARDUINOS
 
     socket.on('connectionStatus', (estado) => {
+      if (!pantallaActivaRef.current) return;
 
       const principal = Boolean(estado?.arduino1);
       const secundario = Boolean(estado?.arduino2);
 
       setEstadoArduino1(principal);
       setEstadoArduino2(secundario);
-
       setConectado(Boolean(estado?.conectado));
 
       setMensaje(
@@ -349,19 +396,21 @@ export default function ExistenciasScreen() {
           : 'Arduino de entregas desconectado'
       );
 
+      setConectando(false);
     });
 
-    // INVENTARIO
+    // INVENTARIO EN TIEMPO REAL
 
     socket.on('stock', (datos) => {
+      if (!pantallaActivaRef.current) return;
+
       actualizarInventario(datos);
     });
 
-    // EVENTOS DE INVENTARIO
+    // MOVIMIENTOS DE INVENTARIO
 
     socket.on('inventoryEvent', (evento) => {
-
-      if (!evento) return;
+      if (!pantallaActivaRef.current || !evento) return;
 
       const accion = evento.accion || evento.tipo || '';
       const producto = evento.producto || '';
@@ -371,186 +420,132 @@ export default function ExistenciasScreen() {
         `${accion} ${producto}`.trim() ||
         'Actividad registrada en la máquina'
       );
-
     });
 
-    // RESULTADO DE ENTREGA
+    // IMPORTANTE:
+    // El resultado de las entregas se consulta mediante
+    // GET /pedido/:pedidoId, para coincidir con server.js.
 
-    socket.on('pedido:resultado', (resultado) => {
+    consultarInventario();
 
-      if (!resultado) return;
-
-      if (resultado.resultado === 'STARTED') {
-        setUltimoEvento(
-          resultado.mensaje || 'Entrega iniciada'
-        );
-        return;
-      }
-
-      if (
-        pedidoPendiente &&
-        resultado.producto !== pedidoPendiente
-      ) {
-        return;
-      }
-
-      setPedidoPendiente(null);
-
-      setUltimoEvento(
-        resultado.mensaje ||
-        resultado.resultado ||
-        'Proceso de entrega finalizado'
-      );
-
-    });
-
-    socket.on('pedido:progreso', (pedido) => {
-
-      if (!pedido) return;
-
-      if (
-        pedidoIdRef.current &&
-        pedido.pedidoId !== pedidoIdRef.current
-      ) {
-        return;
-      }
-
-      setUltimoEvento(pedido.mensaje || 'Pedido en proceso');
-
-      if (
-        pedido.estado === 'completado' ||
-        pedido.estado === 'error'
-      ) {
-        setPedidoPendiente(null);
-        pedidoIdRef.current = null;
-      }
-
-    });
+    const intervaloInventario = setInterval(
+      consultarInventario,
+      INTERVALO_INVENTARIO
+    );
 
     return () => {
+      pantallaActivaRef.current = false;
+
+      clearInterval(intervaloInventario);
+
+      if (temporizadorRef.current) {
+        clearInterval(temporizadorRef.current);
+        temporizadorRef.current = null;
+      }
 
       socket.removeAllListeners();
       socket.disconnect();
 
       socketRef.current = null;
-
-      if (temporizadorRef.current) {
-        clearInterval(temporizadorRef.current);
-      }
-
     };
-
-  }, [pedidoPendiente]);
-
-  // ========================================
-  // CONSULTAR INVENTARIO AL SERVIDOR
-  // ========================================
-
-  useEffect(() => {
-
-    let activo = true;
-
-    const consultarInventario = async () => {
-
-      try {
-
-        const respuesta = await fetch(
-          `${SERVER_URL}/inventario`
-        );
-
-        if (!respuesta.ok) {
-          throw new Error('No se pudo consultar el inventario');
-        }
-
-        const datos = await respuesta.json();
-
-        if (!activo) return;
-
-        actualizarInventario(datos);
-
-        setEstadoArduino1(Boolean(datos.arduino1));
-        setEstadoArduino2(Boolean(datos.arduino2));
-        setConectado(Boolean(datos.conectado));
-
-      } catch (error) {
-
-        console.log('Error consultando inventario:', error.message);
-
-      }
-
-    };
-
-    consultarInventario();
-
-    const intervalo = setInterval(
-      consultarInventario,
-      5000
-    );
-
-    return () => {
-      activo = false;
-      clearInterval(intervalo);
-    };
-
   }, []);
+
+  // ========================================
+  // FINALIZAR SEGUIMIENTO DE PEDIDO
+  // ========================================
+
+  const finalizarPedido = () => {
+    if (temporizadorRef.current) {
+      clearInterval(temporizadorRef.current);
+      temporizadorRef.current = null;
+    }
+
+    pedidoIdRef.current = null;
+    pedidoActivoRef.current = false;
+
+    if (pantallaActivaRef.current) {
+      setPedidoPendiente(null);
+    }
+  };
 
   // ========================================
   // CONSULTAR ESTADO DE PEDIDO
   // ========================================
 
   const consultarPedido = async (pedidoId) => {
+    if (!pedidoId || !pantallaActivaRef.current) return;
 
     try {
-
       const respuesta = await fetch(
-        `${SERVER_URL}/pedido/${pedidoId}`
+        `${SERVER_URL}/pedido/${encodeURIComponent(pedidoId)}`
       );
 
       const datos = await respuesta.json();
 
       if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'Error consultando pedido');
+        throw new Error(
+          datos.mensaje || 'Error consultando pedido'
+        );
       }
 
-      setUltimoEvento(datos.mensaje || 'Pedido en proceso');
+      if (!pantallaActivaRef.current) return;
+
+      setUltimoEvento(
+        datos.mensaje || 'Pedido en proceso'
+      );
+
+      const estado = String(datos.estado || '').toLowerCase();
 
       if (
-        datos.estado === 'completado' ||
-        datos.estado === 'error'
+        estado === 'completado' ||
+        estado === 'error'
       ) {
+        finalizarPedido();
 
-        if (temporizadorRef.current) {
-          clearInterval(temporizadorRef.current);
-          temporizadorRef.current = null;
+        // Actualizar las existencias después de la entrega.
+
+        try {
+          const respuestaInventario = await fetch(
+            `${SERVER_URL}/inventario`
+          );
+
+          if (respuestaInventario.ok) {
+            const inventarioActualizado =
+              await respuestaInventario.json();
+
+            if (pantallaActivaRef.current) {
+              actualizarInventario(inventarioActualizado);
+            }
+          }
+        } catch (errorInventario) {
+          console.log(
+            'Error actualizando inventario:',
+            errorInventario.message
+          );
         }
 
-        pedidoIdRef.current = null;
-        setPedidoPendiente(null);
+        if (!pantallaActivaRef.current) return;
 
-        actualizarInventario(
-          await fetch(`${SERVER_URL}/inventario`).then(r => r.json())
-        );
-
-        if (datos.estado === 'error') {
+        if (estado === 'error') {
           Alert.alert(
             'Pedido interrumpido',
-            datos.mensaje || 'Ocurrió un problema con la entrega.'
+            datos.mensaje ||
+              'Ocurrió un problema con la entrega.'
           );
         } else {
           Alert.alert(
             'Proceso finalizado',
-            datos.mensaje || 'El pedido terminó.'
+            datos.mensaje ||
+              'El proceso de entrega terminó.'
           );
         }
-
       }
-
     } catch (error) {
-
-      console.log('Error consultando pedido:', error.message);
-
+      console.log(
+        'Error consultando pedido:',
+        error.message
+      );
     }
-
   };
 
   // ========================================
@@ -558,49 +553,48 @@ export default function ExistenciasScreen() {
   // ========================================
 
   const solicitarBebida = async (producto) => {
-
     if (!conectado) {
-
       Alert.alert(
         'Máquina desconectada',
         'No hay conexión con el Arduino de entregas.'
       );
+      return;
+    }
 
+    if (!productos.some((item) => item.id === producto)) {
+      Alert.alert(
+        'Producto no válido',
+        'El producto solicitado no está registrado.'
+      );
       return;
     }
 
     if (inventario[producto] <= 0) {
-
       Alert.alert(
         'Sin existencias',
         'No hay unidades disponibles de esta bebida.'
       );
-
       return;
     }
 
-    if (pedidoPendiente !== null) {
-
+    if (pedidoActivoRef.current) {
       Alert.alert(
         'Pedido en proceso',
         'Espera a que termine la entrega actual.'
       );
-
       return;
     }
 
     if (!auth.currentUser) {
-
       Alert.alert(
         'Sesión no encontrada',
         'No se pudo identificar al usuario.'
       );
-
       return;
     }
 
     try {
-
+      pedidoActivoRef.current = true;
       setPedidoPendiente(producto);
 
       setUltimoEvento('Enviando solicitud de entrega...');
@@ -611,23 +605,21 @@ export default function ExistenciasScreen() {
         `${SERVER_URL}/pedido`,
         {
           method: 'POST',
-
           headers: {
             'Content-Type': 'application/json',
           },
-
           body: JSON.stringify({
             items: [
               {
-                producto,
+                producto: producto,
                 cantidad: 1,
               },
             ],
-
             usuario: {
               uid: usuario.uid,
               correo: usuario.email || '',
-              nombre: usuario.displayName ||
+              nombre:
+                usuario.displayName ||
                 usuario.email?.split('@')[0] ||
                 'Usuario',
             },
@@ -637,36 +629,39 @@ export default function ExistenciasScreen() {
 
       const datos = await respuesta.json();
 
-      if (!respuesta.ok || !datos.ok) {
-
+      if (!respuesta.ok || !datos.ok || !datos.pedidoId) {
         throw new Error(
           datos.mensaje || 'No se pudo enviar el pedido.'
         );
-
       }
 
       pedidoIdRef.current = datos.pedidoId;
 
-      setUltimoEvento('Pedido recibido por el servidor');
+      setUltimoEvento(
+        'Pedido recibido por el servidor. Esperando entrega...'
+      );
 
-      // Consultar el progreso del pedido cada 1.5 segundos.
+      // Limpiar cualquier consulta anterior.
 
       if (temporizadorRef.current) {
         clearInterval(temporizadorRef.current);
       }
 
-      temporizadorRef.current = setInterval(() => {
-
-        consultarPedido(datos.pedidoId);
-
-      }, 1500);
+      // Consultar inmediatamente y después cada 1.5 segundos.
 
       consultarPedido(datos.pedidoId);
 
-    } catch (error) {
+      temporizadorRef.current = setInterval(() => {
+        if (
+          pedidoIdRef.current === datos.pedidoId &&
+          pantallaActivaRef.current
+        ) {
+          consultarPedido(datos.pedidoId);
+        }
+      }, INTERVALO_PEDIDO);
 
-      setPedidoPendiente(null);
-      pedidoIdRef.current = null;
+    } catch (error) {
+      finalizarPedido();
 
       setUltimoEvento(error.message);
 
@@ -674,9 +669,7 @@ export default function ExistenciasScreen() {
         'Error de entrega',
         error.message
       );
-
     }
-
   };
 
   // ========================================
@@ -697,30 +690,24 @@ export default function ExistenciasScreen() {
   // ========================================
 
   return (
-
     <ImageBackground
       source={FondoAzul}
       style={styles.background}
       resizeMode="cover"
     >
-
       <StatusBar barStyle="light-content" />
 
       <View style={styles.overlay} />
 
       <SafeAreaView style={styles.safeArea}>
-
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-
           {/* ENCABEZADO */}
 
           <View style={styles.header}>
-
             <View style={styles.brandContainer}>
-
               <Image
                 source={MiLogo}
                 style={styles.logo}
@@ -736,7 +723,6 @@ export default function ExistenciasScreen() {
                   VENDING SYSTEM
                 </Text>
               </View>
-
             </View>
 
             <View style={styles.headerIcon}>
@@ -746,13 +732,11 @@ export default function ExistenciasScreen() {
                 color="#FFFFFF"
               />
             </View>
-
           </View>
 
           {/* TÍTULO */}
 
           <View style={styles.titleContainer}>
-
             <Text style={styles.welcome}>
               ADMINISTRACIÓN
             </Text>
@@ -764,15 +748,12 @@ export default function ExistenciasScreen() {
             <Text style={styles.subtitle}>
               Supervisa el inventario y controla las bebidas de tu máquina.
             </Text>
-
           </View>
 
           {/* CONEXIÓN */}
 
           <View style={styles.connectionCard}>
-
             <View style={styles.connectionLeft}>
-
               <View
                 style={[
                   styles.connectionDot,
@@ -785,7 +766,6 @@ export default function ExistenciasScreen() {
               />
 
               <View style={{ flex: 1 }}>
-
                 <Text style={styles.connectionTitle}>
                   Estado de la máquina
                 </Text>
@@ -801,17 +781,12 @@ export default function ExistenciasScreen() {
                 <Text style={styles.arduinoDetails}>
                   Arduino 2: {estadoArduino2 ? 'Conectado' : 'Desconectado'}
                 </Text>
-
               </View>
-
             </View>
 
             {conectando ? (
-
               <ActivityIndicator color="#1769C2" />
-
             ) : (
-
               <View
                 style={[
                   styles.connectionBadge,
@@ -835,9 +810,7 @@ export default function ExistenciasScreen() {
                   {conectado ? 'ONLINE' : 'OFFLINE'}
                 </Text>
               </View>
-
             )}
-
           </View>
 
           {/* RESUMEN */}
@@ -847,9 +820,7 @@ export default function ExistenciasScreen() {
           </Text>
 
           <View style={styles.summaryContainer}>
-
             <View style={styles.summaryCard}>
-
               <View style={styles.summaryIcon}>
                 <MaterialIcons
                   name="inventory"
@@ -869,11 +840,9 @@ export default function ExistenciasScreen() {
               <Text style={styles.summaryDescription}>
                 Unidades en inventario
               </Text>
-
             </View>
 
             <View style={styles.summaryCard}>
-
               <View style={styles.summaryIcon}>
                 <MaterialIcons
                   name="view-week"
@@ -894,15 +863,12 @@ export default function ExistenciasScreen() {
               <Text style={styles.summaryDescription}>
                 Bandas con existencias
               </Text>
-
             </View>
-
           </View>
 
           {/* INVENTARIO */}
 
           <View style={styles.sectionHeader}>
-
             <View>
               <Text style={styles.sectionTitle}>
                 Inventario de bebidas
@@ -918,11 +884,9 @@ export default function ExistenciasScreen() {
                 MÁX. 4
               </Text>
             </View>
-
           </View>
 
           {productos.map((producto) => (
-
             <BandaCard
               key={producto.id}
               producto={producto}
@@ -931,7 +895,6 @@ export default function ExistenciasScreen() {
               pendiente={pedidoPendiente === producto.id}
               solicitar={solicitarBebida}
             />
-
           ))}
 
           {/* ACTIVIDAD RECIENTE */}
@@ -941,7 +904,6 @@ export default function ExistenciasScreen() {
           </Text>
 
           <View style={styles.activityCard}>
-
             <View style={styles.activityIcon}>
               <MaterialIcons
                 name="history"
@@ -951,7 +913,6 @@ export default function ExistenciasScreen() {
             </View>
 
             <View style={styles.activityInfo}>
-
               <Text style={styles.activityTitle}>
                 Último movimiento
               </Text>
@@ -959,15 +920,12 @@ export default function ExistenciasScreen() {
               <Text style={styles.activityMessage}>
                 {ultimoEvento}
               </Text>
-
             </View>
-
           </View>
 
           {/* INFORMACIÓN */}
 
           <View style={styles.infoCard}>
-
             <MaterialIcons
               name="info-outline"
               size={24}
@@ -975,7 +933,6 @@ export default function ExistenciasScreen() {
             />
 
             <View style={styles.infoContent}>
-
               <Text style={styles.infoTitle}>
                 Información del sistema
               </Text>
@@ -984,15 +941,12 @@ export default function ExistenciasScreen() {
                 Las existencias se actualizan automáticamente
                 cuando Arduino registra cambios en las bandas.
               </Text>
-
             </View>
-
           </View>
 
           {/* PIE DE PÁGINA */}
 
           <View style={styles.footer}>
-
             <Image
               source={MiLogo}
               style={styles.footerLogo}
@@ -1011,17 +965,11 @@ export default function ExistenciasScreen() {
               <View style={styles.redLine} />
               <View style={styles.blueLine} />
             </View>
-
           </View>
-
         </ScrollView>
-
       </SafeAreaView>
-
     </ImageBackground>
-
   );
-
 }
 
 // ==========================================
@@ -1029,7 +977,6 @@ export default function ExistenciasScreen() {
 // ==========================================
 
 const styles = StyleSheet.create({
-
   background: {
     flex: 1,
   },
@@ -1504,5 +1451,4 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#087BCE',
   },
-
 });

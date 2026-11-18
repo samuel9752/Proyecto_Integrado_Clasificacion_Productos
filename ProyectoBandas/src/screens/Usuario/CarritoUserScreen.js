@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+
 import {
   View,
   Text,
@@ -20,38 +21,10 @@ import { getAuth } from 'firebase/auth';
 import { firebaseConfig } from '../../firebase/FirebaseConfig';
 import { useCart } from '../../context/CartContext';
 
-import FondoAzul from '../../../assets/Fondo_2.jpeg';  
+import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
-const API_URL = 'http://192.168.1.66:3000';
-
-// ============================================
-// TARJETAS FICTICIAS DE DEMOSTRACIÓN
-// ============================================
-
-const TARJETAS_DEMO = [
-  {
-    titular: 'SMARTGO DEMO 01',
-    numero: '4242 4242 4242 4242',
-    vencimiento: '12/30',
-    cvv: '123',
-    color: '#172B4D',
-  },
-  {
-    titular: 'SMARTGO DEMO 02',
-    numero: '5555 5555 5555 4444',
-    vencimiento: '11/29',
-    cvv: '456',
-    color: '#0756A5',
-  },
-  {
-    titular: 'SMARTGO DEMO 03',
-    numero: '4000 0566 5566 5556',
-    vencimiento: '10/28',
-    cvv: '789',
-    color: '#C51F2B',
-  },
-];
+const API_URL = 'http://192.168.1.88:3000';
 
 const app = getApps().length === 0
   ? initializeApp(firebaseConfig)
@@ -80,6 +53,9 @@ export default function CarritoUserScreen() {
   const [estadoPedido, setEstadoPedido] = useState(null);
   const [resultadoFinal, setResultadoFinal] = useState(null);
 
+  // Evitar enviar dos veces el mismo pedido.
+  const consultaActiva = useRef(false);
+
   // ============================================
   // FORMATEAR DATOS
   // ============================================
@@ -99,13 +75,6 @@ export default function CarritoUserScreen() {
     return limpio;
   };
 
-  const seleccionarTarjeta = (tarjeta) => {
-    setTitular(tarjeta.titular);
-    setNumero(tarjeta.numero);
-    setVencimiento(tarjeta.vencimiento);
-    setCvv(tarjeta.cvv);
-  };
-
   // ============================================
   // CANTIDADES
   // ============================================
@@ -116,18 +85,50 @@ export default function CarritoUserScreen() {
   };
 
   // ============================================
-  // VALIDAR TARJETA DEMO
+  // VALIDAR CAMPOS
   // ============================================
 
   const validarTarjeta = () => {
     const numeroLimpio = numero.replace(/\s/g, '');
+    const partesFecha = vencimiento.split('/');
 
-    return TARJETAS_DEMO.find((tarjeta) => (
-      tarjeta.numero.replace(/\s/g, '') === numeroLimpio &&
-      tarjeta.titular === titular.trim().toUpperCase() &&
-      tarjeta.vencimiento === vencimiento &&
-      tarjeta.cvv === cvv
-    ));
+    if (titular.trim().length < 3) return false;
+
+    if (numeroLimpio.length !== 16) return false;
+
+    if (
+      partesFecha.length !== 2 ||
+      partesFecha[0].length !== 2 ||
+      partesFecha[1].length !== 2
+    ) {
+      return false;
+    }
+
+    const mes = Number(partesFecha[0]);
+
+    if (mes < 1 || mes > 12) return false;
+
+    if (cvv.length !== 3) return false;
+
+    return true;
+  };
+
+  // ============================================
+  // NORMALIZAR INVENTARIO
+  // ============================================
+
+  const obtenerProductosInventario = (datos) => {
+    return datos.productos || datos.inventario || datos;
+  };
+
+  const obtenerCantidadStock = (inventario, id) => {
+    const valor = inventario?.[id];
+
+    if (typeof valor === 'object' && valor !== null) {
+      return Number(valor.cantidad ?? valor.stock ?? 0);
+    }
+
+    return Number(valor ?? 0);
   };
 
   // ============================================
@@ -135,49 +136,127 @@ export default function CarritoUserScreen() {
   // ============================================
 
   const consultarEstado = async (id) => {
+    if (consultaActiva.current === false) return;
+
     try {
       const respuesta = await fetch(`${API_URL}/pedido/${id}`);
+
       const datos = await respuesta.json();
 
       if (!respuesta.ok) {
-        throw new Error(datos.mensaje || 'Error consultando pedido.');
+        throw new Error(
+          datos.mensaje || 'Error consultando pedido.'
+        );
       }
 
       setEstadoPedido(datos);
+
+      // ========================================
+      // PEDIDO FINALIZADO
+      // ========================================
 
       if (
         datos.estado === 'completado' ||
         datos.estado === 'error'
       ) {
-        const productos = datos.productos || [];
+        // Detener consultas posteriores.
+        consultaActiva.current = false;
 
-        const entregadas = productos.reduce(
-          (suma, item) => suma + Number(item.entregadas || 0),
+        const productosPedido = datos.productos || [];
+
+        const entregadas = productosPedido.reduce(
+          (suma, item) =>
+            suma + Number(item.entregadas || 0),
           0
         );
 
-        const fallidas = productos.reduce(
-          (suma, item) => suma + Number(item.fallidas || 0),
+        const fallidas = productosPedido.reduce(
+          (suma, item) =>
+            suma + Number(item.fallidas || 0),
           0
         );
+
+        // ======================================
+        // CALCULAR UNIDADES PENDIENTES
+        // ======================================
+
+        const pendientes = productosPedido.reduce(
+          (suma, item) => {
+            const solicitadas = Number(item.solicitada || 0);
+            const entregadasItem = Number(item.entregadas || 0);
+
+            return suma + Math.max(
+              0,
+              solicitadas - entregadasItem
+            );
+          },
+          0
+        );
+
+        // ======================================
+        // ACTUALIZAR CARRITO
+        // ======================================
+
+        if (pendientes === 0) {
+          // Todas las bebidas fueron entregadas.
+          clearCart();
+
+        } else {
+          // Conservar solamente las bebidas pendientes.
+          productosPedido.forEach((item) => {
+            const idProducto = item.producto;
+
+            const solicitadas = Number(item.solicitada || 0);
+            const entregadasItem = Number(item.entregadas || 0);
+
+            const restantes = Math.max(
+              0,
+              solicitadas - entregadasItem
+            );
+
+            if (restantes === 0) {
+              removeFromCart(idProducto);
+
+            } else {
+              updateQuantity(idProducto, restantes);
+            }
+          });
+        }
+
+        // ======================================
+        // RESULTADO FINAL
+        // ======================================
 
         setResultadoFinal({
           entregadas,
           fallidas,
+          pendientes,
           mensaje: datos.mensaje || 'El pedido ha finalizado.',
         });
 
-        clearCart();
         setProcesando(false);
         setPantalla('resultado');
+
         return;
       }
 
-      setTimeout(() => consultarEstado(id), 1500);
+      // ========================================
+      // CONTINUAR CONSULTANDO
+      // ========================================
+
+      setTimeout(() => {
+        consultarEstado(id);
+      }, 1500);
 
     } catch (error) {
-      console.log('Error consultando pedido:', error.message);
-      setTimeout(() => consultarEstado(id), 3000);
+      console.log(
+        'Error consultando pedido:',
+        error.message
+      );
+
+      setTimeout(() => {
+        consultarEstado(id);
+      }, 3000);
     }
   };
 
@@ -199,22 +278,54 @@ export default function CarritoUserScreen() {
       return;
     }
 
+    if (cart.length === 0) {
+      setProcesando(false);
+
+      Alert.alert(
+        'Carrito vacío',
+        'Agrega productos antes de comprar.'
+      );
+
+      setPantalla('carrito');
+
+      return;
+    }
+
     try {
-      const respuestaStock = await fetch(`${API_URL}/inventario`);
+      // Consultar inventario actualizado.
+
+      const respuestaStock = await fetch(
+        `${API_URL}/inventario`
+      );
 
       if (!respuestaStock.ok) {
-        throw new Error('No se pudo consultar el inventario.');
+        throw new Error(
+          'No se pudo consultar el inventario.'
+        );
       }
 
       const datosStock = await respuestaStock.json();
-      const inventarioActual = datosStock.productos || datosStock;
+
+      const inventarioActual =
+        obtenerProductosInventario(datosStock);
+
+      // Validar existencias.
 
       for (const item of cart) {
-        const disponible = Number(
-          inventarioActual[item.producto] || 0
+        const idProducto = item.producto || item.id;
+
+        const disponible = obtenerCantidadStock(
+          inventarioActual,
+          idProducto
         );
 
-        if (item.cantidad > disponible) {
+        if (disponible <= 0) {
+          throw new Error(
+            `${item.nombre} ${item.presentacion} está agotado.`
+          );
+        }
+
+        if (Number(item.cantidad) > disponible) {
           throw new Error(
             `Solo quedan ${disponible} unidades de ${item.nombre} ${item.presentacion}.`
           );
@@ -223,16 +334,21 @@ export default function CarritoUserScreen() {
 
       const correo = usuarioActual.email || '';
 
+      // Enviar pedido al servidor.
+
       const respuesta = await fetch(`${API_URL}/pedido`, {
         method: 'POST',
+
         headers: {
           'Content-Type': 'application/json',
         },
+
         body: JSON.stringify({
           items: cart.map((item) => ({
-            producto: item.producto,
-            cantidad: item.cantidad,
+            producto: item.producto || item.id,
+            cantidad: Number(item.cantidad),
           })),
+
           usuario: {
             uid: usuarioActual.uid,
             correo,
@@ -250,26 +366,50 @@ export default function CarritoUserScreen() {
       }
 
       setPedidoId(datos.pedidoId);
+      setEstadoPedido(null);
+      setResultadoFinal(null);
+
+      consultaActiva.current = true;
+
       setPantalla('seguimiento');
 
       consultarEstado(datos.pedidoId);
 
     } catch (error) {
+      console.log('Error enviando pedido:', error);
+
       setProcesando(false);
-      Alert.alert('No se pudo procesar', error.message);
+      consultaActiva.current = false;
+
+      Alert.alert(
+        'No se pudo procesar',
+        error.message
+      );
     }
   };
 
   // ============================================
-  // PROCESAR PAGO SIMULADO
+  // PROCESAR COMPRA
   // ============================================
 
   const procesarPago = () => {
+    if (procesando) return;
+
     if (!titular.trim() || !numero || !vencimiento || !cvv) {
       Alert.alert(
         'Datos incompletos',
-        'Completa todos los campos de la tarjeta.'
+        'Completa todos los campos.'
       );
+
+      return;
+    }
+
+    if (titular.trim().length < 3) {
+      Alert.alert(
+        'Titular incorrecto',
+        'Ingresa el nombre del titular.'
+      );
+
       return;
     }
 
@@ -278,22 +418,33 @@ export default function CarritoUserScreen() {
         'Número incorrecto',
         'El número debe tener 16 dígitos.'
       );
+
       return;
     }
 
-    if (vencimiento.length !== 5) {
+    const partesFecha = vencimiento.split('/');
+    const mes = Number(partesFecha[0]);
+
+    if (
+      vencimiento.length !== 5 ||
+      partesFecha.length !== 2 ||
+      mes < 1 ||
+      mes > 12
+    ) {
       Alert.alert(
         'Fecha incorrecta',
-        'Ingresa el vencimiento en formato MM/AA.'
+        'Ingresa una fecha válida en formato MM/AA.'
       );
+
       return;
     }
 
     if (cvv.length !== 3) {
       Alert.alert(
-        'CVV incorrecto',
-        'El código debe tener 3 dígitos.'
+        'Código incorrecto',
+        'El código de seguridad debe tener 3 dígitos.'
       );
+
       return;
     }
 
@@ -304,28 +455,35 @@ export default function CarritoUserScreen() {
       );
 
       setPantalla('carrito');
+
       return;
     }
 
-    const tarjeta = validarTarjeta();
-
-    if (!tarjeta) {
+    if (!validarTarjeta()) {
       Alert.alert(
-        'Pago rechazado',
-        'Los datos no coinciden con ninguna tarjeta de demostración.'
+        'Datos incorrectos',
+        'Verifica los datos ingresados.'
       );
+
       return;
     }
-
-    setProcesando(true);
 
     Alert.alert(
-      'Pago aprobado',
-      'La tarjeta de demostración fue validada. Se enviará tu pedido a SMARTGO.',
+      'Confirmar compra',
+      '¿Deseas continuar con tu pedido de demostración?',
       [
         {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+
+        {
           text: 'Continuar',
-          onPress: enviarPedido,
+
+          onPress: () => {
+            setProcesando(true);
+            enviarPedido();
+          },
         },
       ]
     );
@@ -337,31 +495,48 @@ export default function CarritoUserScreen() {
 
   const renderHeader = (titulo, subtitulo, volver = false) => (
     <View style={styles.header}>
+
       {volver && (
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => setPantalla('carrito')}
+          onPress={() => {
+            if (!procesando) {
+              setPantalla('carrito');
+            }
+          }}
+          disabled={procesando}
         >
           <MaterialIcons
             name="arrow-back"
             size={21}
             color="#172B4D"
           />
-          <Text style={styles.backText}>Volver</Text>
+
+          <Text style={styles.backText}>
+            Volver
+          </Text>
         </TouchableOpacity>
       )}
 
       <View style={styles.brandRow}>
-        <Image source={MiLogo} style={styles.logo} />
+        <Image
+          source={MiLogo}
+          style={styles.logo}
+        />
 
-        <View>
-          <Text style={styles.brandName}>SMARTGO</Text>
-          
-        </View>
+        <Text style={styles.brandName}>
+          SMARTGO
+        </Text>
       </View>
 
-      <Text style={styles.title}>{titulo}</Text>
-      <Text style={styles.subtitle}>{subtitulo}</Text>
+      <Text style={styles.title}>
+        {titulo}
+      </Text>
+
+      <Text style={styles.subtitle}>
+        {subtitulo}
+      </Text>
+
     </View>
   );
 
@@ -377,14 +552,17 @@ export default function CarritoUserScreen() {
       )}
 
       <View style={styles.content}>
+
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionTitle}>
               Tus productos
             </Text>
+
             <Text style={styles.sectionSubtitle}>
               {cart.reduce(
-                (suma, item) => suma + item.cantidad,
+                (suma, item) =>
+                  suma + Number(item.cantidad || 0),
                 0
               )} bebidas seleccionadas
             </Text>
@@ -401,6 +579,7 @@ export default function CarritoUserScreen() {
 
         {cart.length === 0 ? (
           <View style={styles.emptyCard}>
+
             <View style={styles.emptyIcon}>
               <MaterialIcons
                 name="shopping-cart"
@@ -417,122 +596,136 @@ export default function CarritoUserScreen() {
               Todavía no has agregado bebidas.
               Visita la sección Compras para elegir tus favoritas.
             </Text>
+
           </View>
         ) : (
           <>
-            {cart.map((item) => (
-              <View
-                style={styles.productCard}
-                key={item.producto}
-              >
+            {cart.map((item, index) => {
+              const idProducto = item.producto || item.id;
+
+              return (
                 <View
-                  style={[
-                    styles.productIcon,
-                    {
-                      backgroundColor:
-                        item.nombre === 'Pepsi'
-                          ? '#EAF2FC'
-                          : '#FDEEEF',
-                    },
-                  ]}
+                  style={styles.productCard}
+                  key={`${idProducto || item.nombre}-${index}`}
                 >
-                  <MaterialIcons
-                    name="local-drink"
-                    size={34}
-                    color={
-                      item.nombre === 'Pepsi'
-                        ? '#0756A5'
-                        : '#C51F2B'
-                    }
-                  />
-                </View>
 
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName}>
-                    {item.nombre}
-                  </Text>
-
-                  <Text style={styles.presentation}>
-                    {item.presentacion}
-                  </Text>
-
-                  <Text style={styles.unitPrice}>
-                    Q{Number(item.precio).toFixed(2)} por unidad
-                  </Text>
-
-                  <Text style={styles.price}>
-                    Q{(item.precio * item.cantidad).toFixed(2)}
-                  </Text>
-                </View>
-
-                <View style={styles.controls}>
-                  <View style={styles.quantityControl}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        cambiarCantidad(
-                          item.producto,
-                          item.cantidad - 1
-                        )
-                      }
-                      disabled={item.cantidad <= 1}
-                    >
-                      <MaterialIcons
-                        name="remove-circle-outline"
-                        size={23}
-                        color={
-                          item.cantidad <= 1
-                            ? '#CBD5E1'
-                            : '#14569A'
-                        }
-                      />
-                    </TouchableOpacity>
-
-                    <Text style={styles.quantity}>
-                      {item.cantidad}
-                    </Text>
-
-                    <TouchableOpacity
-                      onPress={() =>
-                        cambiarCantidad(
-                          item.producto,
-                          item.cantidad + 1
-                        )
-                      }
-                      disabled={item.cantidad >= 4}
-                    >
-                      <MaterialIcons
-                        name="add-circle"
-                        size={23}
-                        color={
-                          item.cantidad >= 4
-                            ? '#CBD5E1'
-                            : '#14569A'
-                        }
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      removeFromCart(item.producto)
-                    }
-                    style={styles.removeButton}
+                  <View
+                    style={[
+                      styles.productIcon,
+                      {
+                        backgroundColor:
+                          item.nombre === 'Pepsi'
+                            ? '#EAF2FC'
+                            : '#FDEEEF',
+                      },
+                    ]}
                   >
                     <MaterialIcons
-                      name="delete-outline"
-                      size={18}
-                      color="#DC2626"
+                      name="local-drink"
+                      size={34}
+                      color={
+                        item.nombre === 'Pepsi'
+                          ? '#0756A5'
+                          : '#C51F2B'
+                      }
                     />
+                  </View>
 
-                    <Text style={styles.removeText}>
-                      Quitar
+                  <View style={styles.productInfo}>
+
+                    <Text style={styles.productName}>
+                      {item.nombre}
                     </Text>
-                  </TouchableOpacity>
+
+                    <Text style={styles.presentation}>
+                      {item.presentacion}
+                    </Text>
+
+                    <Text style={styles.unitPrice}>
+                      Q{Number(item.precio || 0).toFixed(2)} por unidad
+                    </Text>
+
+                    <Text style={styles.price}>
+                      Q{(
+                        Number(item.precio || 0) *
+                        Number(item.cantidad || 0)
+                      ).toFixed(2)}
+                    </Text>
+
+                  </View>
+
+                  <View style={styles.controls}>
+
+                    <View style={styles.quantityControl}>
+
+                      <TouchableOpacity
+                        onPress={() =>
+                          cambiarCantidad(
+                            idProducto,
+                            Number(item.cantidad) - 1
+                          )
+                        }
+                        disabled={item.cantidad <= 1}
+                      >
+                        <MaterialIcons
+                          name="remove-circle-outline"
+                          size={23}
+                          color={
+                            item.cantidad <= 1
+                              ? '#CBD5E1'
+                              : '#14569A'
+                          }
+                        />
+                      </TouchableOpacity>
+
+                      <Text style={styles.quantity}>
+                        {item.cantidad}
+                      </Text>
+
+                      <TouchableOpacity
+                        onPress={() =>
+                          cambiarCantidad(
+                            idProducto,
+                            Number(item.cantidad) + 1
+                          )
+                        }
+                        disabled={item.cantidad >= 4}
+                      >
+                        <MaterialIcons
+                          name="add-circle"
+                          size={23}
+                          color={
+                            item.cantidad >= 4
+                              ? '#CBD5E1'
+                              : '#14569A'
+                          }
+                        />
+                      </TouchableOpacity>
+
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => removeFromCart(idProducto)}
+                      style={styles.removeButton}
+                    >
+                      <MaterialIcons
+                        name="delete-outline"
+                        size={18}
+                        color="#DC2626"
+                      />
+
+                      <Text style={styles.removeText}>
+                        Quitar
+                      </Text>
+                    </TouchableOpacity>
+
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             <View style={styles.summaryCard}>
+
               <View style={styles.summaryHeader}>
                 <MaterialIcons
                   name="receipt-long"
@@ -552,7 +745,8 @@ export default function CarritoUserScreen() {
 
                 <Text style={styles.summaryValue}>
                   {cart.reduce(
-                    (suma, item) => suma + item.cantidad,
+                    (suma, item) =>
+                      suma + Number(item.cantidad || 0),
                     0
                   )}
                 </Text>
@@ -564,7 +758,7 @@ export default function CarritoUserScreen() {
                 </Text>
 
                 <Text style={styles.summaryValue}>
-                  Q{total.toFixed(2)}
+                  Q{Number(total || 0).toFixed(2)}
                 </Text>
               </View>
 
@@ -575,15 +769,17 @@ export default function CarritoUserScreen() {
                   <Text style={styles.totalLabel}>
                     Total
                   </Text>
+
                   <Text style={styles.totalCaption}>
-                    Pago de demostración
+                    Total de tu compra
                   </Text>
                 </View>
 
                 <Text style={styles.totalPrice}>
-                  Q{total.toFixed(2)}
+                  Q{Number(total || 0).toFixed(2)}
                 </Text>
               </View>
+
             </View>
 
             <TouchableOpacity
@@ -611,15 +807,17 @@ export default function CarritoUserScreen() {
               <MaterialIcons
                 name="verified-user"
                 size={17}
-                color="#64748B"
+                color="#FFFFFF"
               />
 
               <Text style={styles.secureFooterText}>
-                Compra de demostración SMARTGO
+                Compra SMARTGO
               </Text>
             </View>
+
           </>
         )}
+
       </View>
     </>
   );
@@ -632,12 +830,14 @@ export default function CarritoUserScreen() {
     <>
       {renderHeader(
         'Método de pago',
-        'Completa los datos de tu tarjeta.',
+        'Ingresa los datos solicitados para continuar.',
         true
       )}
 
       <View style={styles.content}>
+
         <View style={styles.paymentCard}>
+
           <View style={styles.paymentCardHeader}>
             <Text style={styles.paymentCardBrand}>
               SMARTGO PAY
@@ -661,6 +861,7 @@ export default function CarritoUserScreen() {
           </Text>
 
           <View style={styles.cardPreviewBottom}>
+
             <View>
               <Text style={styles.cardPreviewLabel}>
                 TITULAR
@@ -680,12 +881,14 @@ export default function CarritoUserScreen() {
                 {vencimiento || 'MM/AA'}
               </Text>
             </View>
+
           </View>
         </View>
 
         <View style={styles.formCard}>
+
           <Text style={styles.sectionTitle}>
-            Información de tarjeta
+            Información de la tarjeta
           </Text>
 
           <Text style={styles.inputLabel}>
@@ -720,6 +923,7 @@ export default function CarritoUserScreen() {
           />
 
           <View style={styles.inputRow}>
+
             <View style={{ flex: 1 }}>
               <Text style={styles.inputLabel}>
                 Vencimiento
@@ -742,12 +946,12 @@ export default function CarritoUserScreen() {
 
             <View style={{ flex: 1 }}>
               <Text style={styles.inputLabel}>
-                CVV
+                Código de seguridad
               </Text>
 
               <TextInput
                 style={styles.input}
-                placeholder="123"
+                placeholder="CVV"
                 placeholderTextColor="#94A3B8"
                 keyboardType="number-pad"
                 value={cvv}
@@ -760,90 +964,55 @@ export default function CarritoUserScreen() {
                 secureTextEntry
               />
             </View>
+
           </View>
 
           <View style={styles.securityNotice}>
             <MaterialIcons
-              name="verified-user"
+              name="info-outline"
               size={20}
               color="#15803D"
             />
 
             <Text style={styles.securityText}>
-              Pago de demostración. No se realiza ningún cobro bancario.
+              Esta pantalla es una demostración. No ingreses datos de una tarjeta real: no se realiza ningún cobro bancario.
             </Text>
           </View>
-        </View>
 
-        <View style={styles.demoContainer}>
-          <Text style={styles.sectionTitle}>
-            Tarjetas de prueba
-          </Text>
-
-          <Text style={styles.demoSubtitle}>
-            Selecciona una tarjeta ficticia para completar los campos.
-          </Text>
-
-          {TARJETAS_DEMO.map((tarjeta, index) => (
-            <TouchableOpacity
-              key={tarjeta.numero}
-              style={styles.demoCard}
-              onPress={() => seleccionarTarjeta(tarjeta)}
-            >
-              <View
-                style={[
-                  styles.demoCardIcon,
-                  { backgroundColor: tarjeta.color },
-                ]}
-              >
-                <MaterialIcons
-                  name="credit-card"
-                  size={21}
-                  color="#FFFFFF"
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.demoCardName}>
-                  Tarjeta de prueba {index + 1}
-                </Text>
-
-                <Text style={styles.demoCardNumber}>
-                  {tarjeta.numero}
-                </Text>
-
-                <Text style={styles.demoCardDetails}>
-                  {tarjeta.titular} · {tarjeta.vencimiento}
-                </Text>
-
-                <Text style={styles.demoCardDetails}>
-                  CVV: {tarjeta.cvv}
-                </Text>
-              </View>
-
-              <MaterialIcons
-                name="add-circle-outline"
-                size={23}
-                color="#14569A"
-              />
-            </TouchableOpacity>
-          ))}
         </View>
 
         <View style={styles.summaryCard}>
+
           <Text style={styles.sectionTitle}>
-            Total de tu compra
+            Resumen de compra
           </Text>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>
+              Productos
+            </Text>
+
+            <Text style={styles.summaryValue}>
+              {cart.reduce(
+                (suma, item) =>
+                  suma + Number(item.cantidad || 0),
+                0
+              )}
+            </Text>
+          </View>
+
+          <View style={styles.separator} />
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>
-              Total a pagar
+              Total
             </Text>
 
             <Text style={styles.totalPrice}>
-              Q{total.toFixed(2)}
+              Q{Number(total || 0).toFixed(2)}
             </Text>
           </View>
+
         </View>
 
         <TouchableOpacity
@@ -859,17 +1028,18 @@ export default function CarritoUserScreen() {
           ) : (
             <>
               <MaterialIcons
-                name="lock"
+                name="check-circle"
                 size={20}
                 color="#FFFFFF"
               />
 
               <Text style={styles.payButtonText}>
-                Confirmar pago · Q{total.toFixed(2)}
+                Confirmar pedido · Q{Number(total || 0).toFixed(2)}
               </Text>
             </>
           )}
         </TouchableOpacity>
+
       </View>
     </>
   );
@@ -880,6 +1050,7 @@ export default function CarritoUserScreen() {
 
   const renderSeguimiento = () => (
     <View style={styles.resultCard}>
+
       <View style={styles.loadingCircle}>
         <ActivityIndicator
           size="large"
@@ -898,10 +1069,10 @@ export default function CarritoUserScreen() {
 
       <View style={styles.trackingLine} />
 
-      {estadoPedido?.productos?.map((item) => (
+      {estadoPedido?.productos?.map((item, index) => (
         <View
           style={styles.progressItem}
-          key={item.producto}
+          key={`${item.producto || 'pedido'}-${index}`}
         >
           <View style={styles.progressIcon}>
             <MaterialIcons
@@ -913,11 +1084,11 @@ export default function CarritoUserScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={styles.progressName}>
-              {item.producto.replace(/_/g, ' ')}
+              {String(item.producto || '').replace(/_/g, ' ')}
             </Text>
 
             <Text style={styles.progressCount}>
-              {item.entregadas} de {item.solicitada} entregadas
+              {item.entregadas || 0} de {item.solicitada || 0} entregadas
             </Text>
           </View>
         </View>
@@ -938,6 +1109,7 @@ export default function CarritoUserScreen() {
       <Text style={styles.orderId}>
         Pedido: {pedidoId}
       </Text>
+
     </View>
   );
 
@@ -947,6 +1119,7 @@ export default function CarritoUserScreen() {
 
   const renderResultado = () => (
     <View style={styles.resultCard}>
+
       <View
         style={[
           styles.resultIconCircle,
@@ -984,6 +1157,7 @@ export default function CarritoUserScreen() {
       </Text>
 
       <View style={styles.finalSummary}>
+
         <View style={styles.finalItem}>
           <Text style={styles.finalNumber}>
             {resultadoFinal?.entregadas || 0}
@@ -1010,7 +1184,22 @@ export default function CarritoUserScreen() {
             Bebidas no entregadas
           </Text>
         </View>
+
       </View>
+
+      {resultadoFinal?.pendientes > 0 && (
+        <View style={styles.waitNotice}>
+          <MaterialIcons
+            name="info-outline"
+            size={18}
+            color="#14569A"
+          />
+
+          <Text style={styles.waitNoticeText}>
+            Se conservaron {resultadoFinal.pendientes} unidades pendientes en tu carrito.
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.orderId}>
         Pedido: {pedidoId}
@@ -1039,6 +1228,7 @@ export default function CarritoUserScreen() {
           Volver al carrito
         </Text>
       </TouchableOpacity>
+
     </View>
   );
 
@@ -1061,8 +1251,11 @@ export default function CarritoUserScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {pantalla === 'carrito' && renderCarrito()}
+
         {pantalla === 'pago' && renderPago()}
+
         {pantalla === 'seguimiento' && renderSeguimiento()}
+
         {pantalla === 'resultado' && renderResultado()}
 
         <View style={{ height: 35 }} />
@@ -1076,6 +1269,7 @@ export default function CarritoUserScreen() {
 // ============================================
 
 const styles = StyleSheet.create({
+
   background: {
     flex: 1,
   },
@@ -1123,13 +1317,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: 2,
-  },
-
-  brandCaption: {
-    color: '#64748B',
-    fontSize: 9,
-    letterSpacing: 2,
-    marginTop: 2,
   },
 
   title: {
@@ -1503,57 +1690,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  demoContainer: {
-    marginTop: 17,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 17,
-    elevation: 3,
-  },
-
-  demoSubtitle: {
-    color: '#64748B',
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: -7,
-    marginBottom: 12,
-  },
-
-  demoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    paddingVertical: 13,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-
-  demoCardIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  demoCardName: {
-    color: '#172033',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  demoCardNumber: {
-    color: '#334155',
-    fontSize: 11,
-    marginTop: 4,
-  },
-
-  demoCardDetails: {
-    color: '#94A3B8',
-    fontSize: 10,
-    marginTop: 3,
-  },
-
   resultCard: {
     backgroundColor: '#FFFFFF',
     margin: 16,
@@ -1694,4 +1830,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+
 });
