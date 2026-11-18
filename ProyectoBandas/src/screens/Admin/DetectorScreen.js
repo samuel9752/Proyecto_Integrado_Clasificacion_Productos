@@ -24,7 +24,9 @@ import {
   getFirestore,
   doc,
   onSnapshot,
-  updateDoc
+  updateDoc,
+  setDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 
 // IMÁGENES
@@ -56,6 +58,7 @@ export default function DetectorScreen() {
   const [ignorada, setIgnorada] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [apagando, setApagando] = useState(false);
+  const [bandaEnviando, setBandaEnviando] = useState(null);
 
   // ==========================================
   // ESCUCHAR CAMBIOS DE FIREBASE
@@ -213,16 +216,46 @@ export default function DetectorScreen() {
     );
 
   };
-
-  // ==========================================
-  // ESTADOS VISUALES
-  // ==========================================
+  const solicitarApagadoBanda = (banda, nombre) => {
+    Alert.alert(
+      'Apagar sección',
+      `¿Deseas solicitar el apagado de ${nombre}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Solicitar apagado',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setBandaEnviando(banda);
+              const referencia = doc(db, 'maquina', 'seguridad');
+              await setDoc(referencia, {
+                solicitudesBandas: {
+                  [banda]: {
+                    apagar: true,
+                    estado: 'pendiente',
+                    solicitadoEn: serverTimestamp(),
+                  },
+                },
+              }, { merge: true });
+              Alert.alert(
+                'Solicitud registrada',
+                `La solicitud para ${nombre} quedó registrada. El apagado físico todavía requiere conectar el servidor y el programa de Arduino para procesarla.`
+              );
+            } catch (error) {
+              console.log('Error solicitando apagado de banda:', error);
+              Alert.alert('Error', 'No se pudo registrar la solicitud de apagado.');
+            } finally {
+              setBandaEnviando(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const peligro = llamaDetectada;
-
-  const colorEstado = peligro
-    ? '#EF4444'
-    : '#22C55E';
+  const colorEstado = peligro ? '#EF4444' : '#22C55E';
 
   const colorSensor = !sensorConectado
     ? '#F59E0B'
@@ -739,6 +772,34 @@ export default function DetectorScreen() {
 
           </View>
 
+          {/* APAGADO INDIVIDUAL DE SECCIONES */}
+          <Text style={styles.sectionTitleSmall}>
+            Control individual de bandas
+          </Text>
+
+          <View style={styles.bandControls}>
+            {[
+              { id: 'COCA_LATA', nombre: 'sección de Coca-Cola de lata', texto: 'Apagar sección de Coca-Cola de lata' },
+              { id: 'COCA_BOTELLA', nombre: 'sección de Coca-Cola de botella', texto: 'Apagar sección de Coca-Cola de botella' },
+              { id: 'PEPSI_LATA', nombre: 'sección de Pepsi de lata', texto: 'Apagar sección de Pepsi de lata' },
+            ].map((banda) => (
+              <TouchableOpacity
+                key={banda.id}
+                style={[styles.bandButton, bandaEnviando === banda.id && styles.disabledButton]}
+                onPress={() => solicitarApagadoBanda(banda.id, banda.nombre)}
+                disabled={bandaEnviando !== null || !maquinaEncendida}
+                activeOpacity={0.85}
+              >
+                {bandaEnviando === banda.id ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <MaterialIcons name="power-settings-new" size={19} color="#FFFFFF" />
+                )}
+                <Text style={styles.bandButtonText}>{banda.texto}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* NOTA INFORMATIVA */}
 
           <View style={styles.infoCard}>
@@ -750,10 +811,7 @@ export default function DetectorScreen() {
             />
 
             <Text style={styles.infoText}>
-              Los datos se actualizan automáticamente mediante Firebase.
-              Reconocer una alerta no elimina la detección ni apaga la máquina.
-              La lectura corresponde al sensor de llama, no a una medición
-              directa de temperatura.
+            
             </Text>
 
           </View>
@@ -1250,6 +1308,31 @@ const styles = StyleSheet.create({
   },
 
   // INFORMACIÓN
+
+  bandControls: {
+    gap: 10,
+    marginBottom: 18,
+  },
+
+  bandButton: {
+    minHeight: 49,
+    borderRadius: 12,
+    backgroundColor: '#B42332',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 9,
+  },
+
+  bandButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
 
   infoCard: {
     backgroundColor: 'rgba(16, 45, 85, 0.96)',
