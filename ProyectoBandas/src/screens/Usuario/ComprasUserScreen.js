@@ -25,7 +25,7 @@ import FondoAzul from '../../../assets/Fondo_2.jpeg';
 import MiLogo from '../../../assets/logo.jpeg';
 
 // DIRECCION DEL SERVIDOR
-const API_URL = 'http://192.168.1.120:3000';
+const API_URL = 'http://192.168.1.88:3000';
 
 const PRODUCTOS = [
   {

@@ -30,7 +30,7 @@ import MiLogo from '../../../assets/logo.jpeg';
 // CONFIGURACIÓN
 // ============================================
 
-const API_URL = 'http://192.168.1.120:3000';
+const API_URL = 'http://192.168.1.88:3000';
 
 export default function UserScreen({ navigation }) {
 

@@ -30,7 +30,7 @@ import MiLogo from '../../../assets/logo.jpeg';
 // ==========================================
 
 // Cambia esta IP si la dirección IPv4 de tu computadora es diferente.
-const SERVER_URL = 'http://192.168.1.120:3000';
+const SERVER_URL = 'http://192.168.1.88:3000';
 
 const CAPACIDAD_MAXIMA = 4;
 const INTERVALO_INVENTARIO = 5000;
