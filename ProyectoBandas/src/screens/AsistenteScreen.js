@@ -41,6 +41,8 @@ const app = getApps().length
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+const API_URL = 'http://192.168.1.194:3001/api/asistente';
+
 const PRODUCTOS = {
   COCA_LATA: {
     nombre: 'Coca-Cola de lata',
@@ -326,10 +328,11 @@ export default function AsistenteScreen({
     return `Según tu historial, tu bebida más elegida es ${productoFavorito.nombre} (${favorita[1]} unidad(es).).\n\nMi recomendación es que pruebes ${PRODUCTOS[alternativa].nombre}. Así puedes variar tu elección. La sugerencia se basa en tus compras registradas, no en una evaluación de tus gustos fuera de la aplicación.`;
   };
 
+
   const enviarMensaje = async (valor = texto) => {
     const pregunta = String(valor || '').trim();
 
-    if (!pregunta || enviando) return;
+    if (!pregunta || enviando || cargandoDatos) return;
 
     setTexto('');
 
@@ -345,36 +348,106 @@ export default function AsistenteScreen({
     setEnviando(true);
 
     try {
-      if (ventas.length === 0 && !errorDatos) {
-        await cargarDatos();
+      if (errorDatos) {
+        throw new Error(errorDatos);
       }
 
-      const respuesta = esAdmin
-        ? responderAdmin(pregunta)
-        : responderUsuario(pregunta);
+      // Preparar los datos que recibirá Gemini.
+      const convertirVenta = (venta) => {
+        const fecha = fechaDeVenta(venta.fecha);
+
+        return {
+          producto: venta.producto || '',
+          nombre: venta.nombre || '',
+          presentacion: venta.presentacion || '',
+          precio: Number(venta.precio) || 0,
+          cantidad: cantidadVenta(venta),
+          total: Number(venta.total) || 0,
+          fecha: fecha ? fecha.toISOString() : null,
+        };
+      };
+
+      const datosAsistente = esAdmin
+        ? {
+          tipo: 'administrador',
+          resumenInventario: resumenAdmin,
+          inventario,
+          ventasRecientes: ventas
+            .slice(0, 30)
+            .map(convertirVenta),
+          totalVentasConsultadas: ventas.length,
+        }
+        : {
+          tipo: 'usuario',
+          resumenCompras: resumenUsuario.map(([producto, cantidad]) => ({
+            producto,
+            nombre: PRODUCTOS[producto]?.nombre || producto,
+            cantidad,
+          })),
+          historialCompras: ventas
+            .slice(0, 30)
+            .map(convertirVenta),
+          totalComprasConsultadas: ventas.length,
+        };
+
+      const respuestaServidor = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pregunta,
+          modo,
+          datos: datosAsistente,
+        }),
+      });
+
+      const resultado = await respuestaServidor.json();
+
+      if (!respuestaServidor.ok) {
+        throw new Error(
+          resultado.error || 'No se pudo obtener una respuesta.'
+        );
+      }
 
       setMensajes((anteriores) => [
         ...anteriores,
         {
           id: `${Date.now()}-bot`,
           emisor: 'bot',
-          texto: respuesta,
+          texto: resultado.respuesta || 'No recibí una respuesta.',
         },
       ]);
+
+    } catch (error) {
+      console.log('Error al comunicarse con Gemini:', error);
+
+      setMensajes((anteriores) => [
+        ...anteriores,
+        {
+          id: `${Date.now()}-error`,
+          emisor: 'bot',
+          texto:
+            error.message ||
+            'No pude comunicarme con el asistente. Inténtalo nuevamente.',
+        },
+      ]);
+
     } finally {
       setEnviando(false);
     }
   };
 
+
   const sugerencias = esAdmin
     ? [
-        '¿Qué bebida está por agotarse?',
-        'Analiza todas las existencias',
-      ]
+      '¿Qué bebida está por agotarse?',
+      'Analiza todas las existencias',
+    ]
     : [
-        '¿Qué bebida me recomiendas?',
-        '¿Qué he comprado anteriormente?',
-      ];
+      '¿Qué bebida me recomiendas?',
+      '¿Qué he comprado anteriormente?',
+    ];
 
   return (
     <ImageBackground
@@ -518,7 +591,7 @@ export default function AsistenteScreen({
                         style={[
                           styles.mensaje,
                           item.emisor === 'usuario' &&
-                            styles.mensajeUsuario,
+                          styles.mensajeUsuario,
                         ]}
                       >
                         {item.texto}

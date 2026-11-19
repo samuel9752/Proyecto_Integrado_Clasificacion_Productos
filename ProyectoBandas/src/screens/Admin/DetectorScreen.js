@@ -578,7 +578,7 @@ export default function DetectorScreen() {
             <View style={styles.sensorInfo}>
 
               <Text style={styles.sensorTitle}>
-                Sensor detector de llama
+                Sensor detector de sobrecalientamiento
               </Text>
 
               <Text style={styles.sensorSubtitle}>
