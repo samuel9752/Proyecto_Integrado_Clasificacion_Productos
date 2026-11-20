@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import React, { useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -18,67 +19,16 @@ import {
 
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-
-import {
-  collection,
-  getDocs,
-  getFirestore,
-  query,
-  where,
-} from 'firebase/firestore';
-
-import { firebaseConfig } from '../firebase/FirebaseConfig';
-
 import FondoAzul from '../../assets/Fondo_2.jpeg';
 import MiLogo from '../../assets/logo.jpeg';
 
-const app = getApps().length
-  ? getApps()[0]
-  : initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-const auth = getAuth(app);
-
+// Dirección del servidor de SMARTGO AI
 const API_URL = 'http://192.168.1.194:3001/api/asistente';
-
-const PRODUCTOS = {
-  COCA_LATA: {
-    nombre: 'Coca-Cola de lata',
-    precio: 8,
-  },
-
-  COCA_BOTELLA: {
-    nombre: 'Coca-Cola de botella',
-    precio: 12,
-  },
-
-  PEPSI_LATA: {
-    nombre: 'Pepsi de lata',
-    precio: 7,
-  },
-};
 
 const mensajeInicial = (modo) =>
   modo === 'admin'
-    ? '¡Hola! Soy el asistente de SMARTGO. Puedo analizar las ventas recientes y las existencias para estimar cuándo podría agotarse cada bebida.'
-    : '¡Hola! Puedo revisar tus compras anteriores y ayudarte a elegir una bebida. Pregúntame qué te recomiendo.';
-
-const fechaDeVenta = (valor) => {
-  if (!valor) return null;
-
-  if (typeof valor.toDate === 'function') {
-    return valor.toDate();
-  }
-
-  const fecha = new Date(valor);
-
-  return Number.isNaN(fecha.getTime()) ? null : fecha;
-};
-
-const cantidadVenta = (venta) =>
-  Math.max(0, Number(venta.cantidad) || 1);
+    ? '¡Hola! Soy SMARTGO AI. Estoy aquí para ayudarte a gestionar la tienda, analizar las ventas, organizar el inventario y tomar mejores decisiones. ¿Qué necesitas saber?'
+    : '¡Hola! Soy SMARTGO AI. Puedo ayudarte a conocer nuestros productos, comparar bebidas y encontrar recomendaciones. ¿Qué te gustaría saber?';
 
 export default function AsistenteScreen({
   route,
@@ -93,8 +43,6 @@ export default function AsistenteScreen({
 
   const esAdmin = modo === 'admin';
 
-  const [uid, setUid] = useState(auth.currentUser?.uid || null);
-
   const [mensajes, setMensajes] = useState([
     {
       id: 'bienvenida',
@@ -104,291 +52,36 @@ export default function AsistenteScreen({
   ]);
 
   const [texto, setTexto] = useState('');
-  const [cargandoDatos, setCargandoDatos] = useState(true);
   const [enviando, setEnviando] = useState(false);
-
-  const [ventas, setVentas] = useState([]);
-  const [inventario, setInventario] = useState({});
-
-  const [errorDatos, setErrorDatos] = useState('');
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (usuario) => {
-      setUid(usuario?.uid || null);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const cargarDatos = useCallback(async () => {
-    setCargandoDatos(true);
-    setErrorDatos('');
-
-    try {
-      let consultaVentas;
-
-      if (esAdmin) {
-        consultaVentas = collection(db, 'ventas');
-      } else {
-        if (!uid) {
-          setVentas([]);
-          setInventario({});
-
-          setErrorDatos(
-            'Inicia sesión para consultar tu historial de compras.'
-          );
-
-          return;
-        }
-
-        consultaVentas = query(
-          collection(db, 'ventas'),
-          where('usuario.uid', '==', uid)
-        );
-      }
-
-      const [resultadoVentas, resultadoInventario] =
-        await Promise.all([
-          getDocs(consultaVentas),
-
-          esAdmin
-            ? getDocs(collection(db, 'inventario'))
-            : Promise.resolve(null),
-        ]);
-
-      setVentas(
-        resultadoVentas.docs.map((documento) => ({
-          id: documento.id,
-          ...documento.data(),
-        }))
-      );
-
-      if (resultadoInventario) {
-        const existencias = {};
-
-        resultadoInventario.docs.forEach((documento) => {
-          const datos = documento.data();
-
-          existencias[documento.id] = Math.max(
-            0,
-            Number(datos.cantidad) || 0
-          );
-        });
-
-        setInventario(existencias);
-      }
-    } catch (error) {
-      console.log('Error al cargar datos del asistente:', error);
-
-      setErrorDatos(
-        'No pude consultar los datos de Firebase. Revisa la conexión y los permisos de lectura.'
-      );
-    } finally {
-      setCargandoDatos(false);
-    }
-  }, [esAdmin, uid]);
-
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
-
-  const resumenAdmin = useMemo(() => {
-    const ahora = new Date();
-
-    const haceSieteDias = new Date(
-      ahora.getTime() - 7 * 24 * 60 * 60 * 1000
-    );
-
-    return Object.keys(PRODUCTOS).map((id) => {
-      const unidades = ventas.reduce((total, venta) => {
-        if (venta.producto !== id) return total;
-
-        const fecha = fechaDeVenta(venta.fecha);
-
-        if (!fecha || fecha < haceSieteDias || fecha > ahora) {
-          return total;
-        }
-
-        return total + cantidadVenta(venta);
-      }, 0);
-
-      const promedio = unidades / 7;
-
-      const stock = inventario[id] ?? null;
-
-      return {
-        id,
-        nombre: PRODUCTOS[id].nombre,
-        stock,
-        unidades,
-        promedio,
-        dias:
-          stock !== null && promedio > 0
-            ? stock / promedio
-            : null,
-      };
-    });
-  }, [ventas, inventario]);
-
-  const resumenUsuario = useMemo(() => {
-    const conteo = {};
-
-    ventas.forEach((venta) => {
-      if (!PRODUCTOS[venta.producto]) return;
-
-      conteo[venta.producto] =
-        (conteo[venta.producto] || 0) + cantidadVenta(venta);
-    });
-
-    return Object.entries(conteo).sort(
-      (a, b) => b[1] - a[1]
-    );
-  }, [ventas]);
-
-  const responderAdmin = (pregunta) => {
-    const textoPregunta = pregunta.toLowerCase();
-
-    if (errorDatos) return errorDatos;
-
-    if (!ventas.length) {
-      return 'Todavía no hay ventas registradas para calcular una tendencia. Cuando existan ventas, podré estimar el consumo usando los últimos siete días.';
-    }
-
-    const resultados = resumenAdmin.map((item) => {
-      if (item.stock === null) {
-        return `${item.nombre}: no encontré existencias registradas en Firebase.`;
-      }
-
-      if (item.promedio === 0) {
-        return `${item.nombre}: quedan ${item.stock} unidades y no se registraron ventas en los últimos siete días. No hay suficiente actividad reciente para estimar agotamiento.`;
-      }
-
-      if (item.dias <= 1) {
-        return `${item.nombre}: quedan ${item.stock} unidades. Con un promedio de ${item.promedio.toFixed(1)} ventas al día, podría agotarse en aproximadamente ${item.dias.toFixed(1)} días.`;
-      }
-
-      return `${item.nombre}: quedan ${item.stock} unidades. Promedio de ${item.promedio.toFixed(1)} ventas al día; estimación de agotamiento: ${item.dias.toFixed(1)} días.`;
-    });
-
-    if (
-      textoPregunta.includes('coca') ||
-      textoPregunta.includes('pepsi')
-    ) {
-      const encontrado = resumenAdmin.find(
-        (item) =>
-          textoPregunta.includes(
-            item.nombre.toLowerCase().split(' ')[0]
-          ) &&
-          (
-            textoPregunta.includes('botella')
-              ? item.id === 'COCA_BOTELLA'
-              : textoPregunta.includes('lata')
-                ? item.id !== 'COCA_BOTELLA'
-                : true
-          )
-      );
-
-      if (encontrado) {
-        return resultados[resumenAdmin.indexOf(encontrado)];
-      }
-    }
-
-    return `Este es el análisis de los últimos siete días:\n\n${resultados.join('\n\n')}\n\nEs una estimación basada en el promedio reciente; las ventas pueden variar y no garantiza la fecha exacta de agotamiento.`;
-  };
-
-  const responderUsuario = (pregunta) => {
-    const textoPregunta = pregunta.toLowerCase();
-
-    if (errorDatos) return errorDatos;
-
-    if (!ventas.length) {
-      return 'Aún no encuentro compras anteriores asociadas a tu cuenta. Cuando realices tu primera compra podré identificar tus preferencias y recomendarte bebidas.';
-    }
-
-    const favorita = resumenUsuario[0];
-
-    const productoFavorito = PRODUCTOS[favorita[0]];
-
-    const totalCompras = resumenUsuario.reduce(
-      (suma, item) => suma + item[1],
-      0
-    );
-
-    if (
-      textoPregunta.includes('historial') ||
-      textoPregunta.includes('compr')
-    ) {
-      return `He encontrado ${totalCompras} unidad(es) comprada(s) en tu historial. Tu bebida más comprada es ${productoFavorito.nombre}, con ${favorita[1]} unidad(es).`;
-    }
-
-    const alternativa = Object.keys(PRODUCTOS).find(
-      (id) => id !== favorita[0]
-    );
-
-    return `Según tu historial, tu bebida más elegida es ${productoFavorito.nombre} (${favorita[1]} unidad(es).).\n\nMi recomendación es que pruebes ${PRODUCTOS[alternativa].nombre}. Así puedes variar tu elección. La sugerencia se basa en tus compras registradas, no en una evaluación de tus gustos fuera de la aplicación.`;
-  };
-
 
   const enviarMensaje = async (valor = texto) => {
     const pregunta = String(valor || '').trim();
 
-    if (!pregunta || enviando || cargandoDatos) return;
+    if (!pregunta || enviando) return;
 
     setTexto('');
 
-    setMensajes((anteriores) => [
-      ...anteriores,
-      {
-        id: `${Date.now()}-user`,
-        emisor: 'usuario',
-        texto: pregunta,
-      },
-    ]);
+    const mensajeUsuario = {
+      id: `${Date.now()}-user`,
+      emisor: 'usuario',
+      texto: pregunta,
+    };
 
+    const historialActualizado = [
+      ...mensajes,
+      mensajeUsuario,
+    ];
+
+    setMensajes(historialActualizado);
     setEnviando(true);
 
     try {
-      if (errorDatos) {
-        throw new Error(errorDatos);
-      }
-
-      // Preparar los datos que recibirá Gemini.
-      const convertirVenta = (venta) => {
-        const fecha = fechaDeVenta(venta.fecha);
-
-        return {
-          producto: venta.producto || '',
-          nombre: venta.nombre || '',
-          presentacion: venta.presentacion || '',
-          precio: Number(venta.precio) || 0,
-          cantidad: cantidadVenta(venta),
-          total: Number(venta.total) || 0,
-          fecha: fecha ? fecha.toISOString() : null,
-        };
-      };
-
-      const datosAsistente = esAdmin
-        ? {
-          tipo: 'administrador',
-          resumenInventario: resumenAdmin,
-          inventario,
-          ventasRecientes: ventas
-            .slice(0, 30)
-            .map(convertirVenta),
-          totalVentasConsultadas: ventas.length,
-        }
-        : {
-          tipo: 'usuario',
-          resumenCompras: resumenUsuario.map(([producto, cantidad]) => ({
-            producto,
-            nombre: PRODUCTOS[producto]?.nombre || producto,
-            cantidad,
-          })),
-          historialCompras: ventas
-            .slice(0, 30)
-            .map(convertirVenta),
-          totalComprasConsultadas: ventas.length,
-        };
+      const historial = historialActualizado
+        .slice(-12)
+        .map((mensaje) => ({
+          emisor: mensaje.emisor,
+          texto: mensaje.texto,
+        }));
 
       const respuestaServidor = await fetch(API_URL, {
         method: 'POST',
@@ -398,7 +91,7 @@ export default function AsistenteScreen({
         body: JSON.stringify({
           pregunta,
           modo,
-          datos: datosAsistente,
+          historial,
         }),
       });
 
@@ -428,8 +121,7 @@ export default function AsistenteScreen({
           id: `${Date.now()}-error`,
           emisor: 'bot',
           texto:
-            error.message ||
-            'No pude comunicarme con el asistente. Inténtalo nuevamente.',
+            'No pude comunicarme con SMARTGO AI. Inténtalo nuevamente.',
         },
       ]);
 
@@ -438,16 +130,33 @@ export default function AsistenteScreen({
     }
   };
 
-
   const sugerencias = esAdmin
     ? [
-      '¿Qué bebida está por agotarse?',
-      'Analiza todas las existencias',
-    ]
+        '¿Cómo puedo mejorar las ventas?',
+        '¿Qué productos tienen mayor demanda?',
+        '¿Cómo debería organizar el inventario?',
+        '¿Qué estrategias me recomiendas para la tienda?',
+      ]
     : [
-      '¿Qué bebida me recomiendas?',
-      '¿Qué he comprado anteriormente?',
-    ];
+        '¿Qué bebida me recomiendas?',
+        '¿Cuál es la diferencia entre Coca-Cola y Pepsi?',
+        'Recomiéndame una bebida refrescante.',
+        '¿Qué productos puedo encontrar en la tienda?',
+      ];
+
+  const limpiarConversacion = () => {
+    if (enviando) return;
+
+    setMensajes([
+      {
+        id: 'bienvenida',
+        emisor: 'bot',
+        texto: mensajeInicial(modo),
+      },
+    ]);
+
+    setTexto('');
+  };
 
   return (
     <ImageBackground
@@ -487,21 +196,23 @@ export default function AsistenteScreen({
 
               <Text style={styles.titulo}>
                 {esAdmin
-                  ? 'Asistente de existencias'
+                  ? 'Asistente administrativo'
                   : 'Asistente de bebidas'}
               </Text>
 
               <Text style={styles.subtitulo}>
                 {esAdmin
-                  ? 'Análisis de ventas e inventario'
+                  ? 'Tu asistente inteligente'
                   : 'Recomendaciones para ti'}
               </Text>
             </View>
 
             <TouchableOpacity
               style={styles.refresh}
-              onPress={cargarDatos}
-              disabled={cargandoDatos}
+              onPress={limpiarConversacion}
+              disabled={enviando}
+              accessibilityRole="button"
+              accessibilityLabel="Nueva conversación"
             >
               <MaterialIcons
                 name="refresh"
@@ -526,134 +237,120 @@ export default function AsistenteScreen({
             )}
           </View>
 
-          {cargandoDatos ? (
-            <View style={styles.estadoCarga}>
-              <ActivityIndicator
-                color="#FFFFFF"
-                size="large"
-              />
+          <View style={styles.estadoDatos}>
+            <MaterialIcons
+              name="auto-awesome"
+              size={17}
+              color="#86EFAC"
+            />
 
-              <Text style={styles.textoCarga}>
-                Consultando tus datos...
-              </Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.estadoDatos}>
-                <MaterialIcons
-                  name={errorDatos ? 'cloud-off' : 'cloud-done'}
-                  size={17}
-                  color={errorDatos ? '#FCA5A5' : '#86EFAC'}
-                />
+            <Text style={styles.estadoDatosTexto}>
+              SMARTGO AI disponible
+            </Text>
+          </View>
 
-                <Text style={styles.estadoDatosTexto}>
-                  {errorDatos
-                    ? 'Datos no disponibles'
-                    : esAdmin
-                      ? `${ventas.length} ventas consultadas`
-                      : `${ventas.length} compras encontradas`}
-                </Text>
-              </View>
-
-              <FlatList
-                style={styles.lista}
-                contentContainerStyle={styles.listaContenido}
-                data={mensajes}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View
-                    style={[
-                      styles.filaMensaje,
-                      item.emisor === 'usuario'
-                        ? styles.filaUsuario
-                        : styles.filaBot,
-                    ]}
-                  >
-                    {item.emisor === 'bot' && (
-                      <View style={styles.avatar}>
-                        <MaterialIcons
-                          name="smart-toy"
-                          size={18}
-                          color="#FFFFFF"
-                        />
-                      </View>
-                    )}
-
-                    <View
-                      style={[
-                        styles.burbuja,
-                        item.emisor === 'usuario'
-                          ? styles.burbujaUsuario
-                          : styles.burbujaBot,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.mensaje,
-                          item.emisor === 'usuario' &&
-                          styles.mensajeUsuario,
-                        ]}
-                      >
-                        {item.texto}
-                      </Text>
-                    </View>
+          <FlatList
+            style={styles.lista}
+            contentContainerStyle={styles.listaContenido}
+            data={mensajes}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.filaMensaje,
+                  item.emisor === 'usuario'
+                    ? styles.filaUsuario
+                    : styles.filaBot,
+                ]}
+              >
+                {item.emisor === 'bot' && (
+                  <View style={styles.avatar}>
+                    <MaterialIcons
+                      name="smart-toy"
+                      size={18}
+                      color="#FFFFFF"
+                    />
                   </View>
                 )}
-                ListFooterComponent={
-                  enviando ? (
-                    <View style={styles.escribiendo}>
-                      <ActivityIndicator
-                        size="small"
-                        color="#FFFFFF"
-                      />
 
-                      <Text style={styles.escribiendoTexto}>
-                        Preparando respuesta...
-                      </Text>
-                    </View>
-                  ) : null
-                }
-              />
-
-              <View style={styles.sugerencias}>
-                {sugerencias.map((sugerencia) => (
-                  <TouchableOpacity
-                    key={sugerencia}
-                    style={styles.chip}
-                    onPress={() => enviarMensaje(sugerencia)}
-                  >
-                    <Text style={styles.chipTexto}>
-                      {sugerencia}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.compositor}>
-                <TextInput
-                  style={styles.input}
-                  value={texto}
-                  onChangeText={setTexto}
-                  placeholder="Escribe tu pregunta..."
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                  maxLength={300}
-                />
-
-                <TouchableOpacity
-                  style={styles.enviar}
-                  onPress={() => enviarMensaje()}
-                  disabled={!texto.trim() || enviando}
+                <View
+                  style={[
+                    styles.burbuja,
+                    item.emisor === 'usuario'
+                      ? styles.burbujaUsuario
+                      : styles.burbujaBot,
+                  ]}
                 >
-                  <MaterialIcons
-                    name="send"
-                    size={21}
+                  <Text
+                    style={[
+                      styles.mensaje,
+                      item.emisor === 'usuario' &&
+                        styles.mensajeUsuario,
+                    ]}
+                  >
+                    {item.texto}
+                  </Text>
+                </View>
+              </View>
+            )}
+            ListFooterComponent={
+              enviando ? (
+                <View style={styles.escribiendo}>
+                  <ActivityIndicator
+                    size="small"
                     color="#FFFFFF"
                   />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+
+                  <Text style={styles.escribiendoTexto}>
+                    Preparando respuesta...
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+
+          <View style={styles.sugerencias}>
+            {sugerencias.map((sugerencia) => (
+              <TouchableOpacity
+                key={sugerencia}
+                style={styles.chip}
+                onPress={() => enviarMensaje(sugerencia)}
+                disabled={enviando}
+              >
+                <Text style={styles.chipTexto}>
+                  {sugerencia}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.compositor}>
+            <TextInput
+              style={styles.input}
+              value={texto}
+              onChangeText={setTexto}
+              placeholder="Escribe tu pregunta..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              maxLength={300}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.enviar,
+                (!texto.trim() || enviando) &&
+                  styles.enviarDeshabilitado,
+              ]}
+              onPress={() => enviarMensaje()}
+              disabled={!texto.trim() || enviando}
+            >
+              <MaterialIcons
+                name="send"
+                size={21}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ImageBackground>
@@ -888,15 +585,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  estadoCarga: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  textoCarga: {
-    color: '#FFFFFF',
-    marginTop: 12,
-    fontSize: 13,
+  enviarDeshabilitado: {
+    opacity: 0.5,
   },
 });
